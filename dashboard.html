@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>User Reconciliation Dashboard · Amplifon IT</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:#0D0F0E; --bg2:#141716; --bg3:#1C1F1E; --bg4:#232624;
+  --border:rgba(255,255,255,0.07); --border-hi:rgba(255,255,255,0.15);
+  --text:#E8EAE9; --muted:#6B7370; --accent:#81B5A1;
+  --oracle:#C74634; --fox:#1B5DAA; --snow:#81B5A1;
+  --ok:#5BAE76; --warn:#E8A23A; --danger:#D95B5B;
+  --fm:'JetBrains Mono',monospace; --fd:'Syne',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;line-height:1.55;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(129,181,161,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(129,181,161,.022) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+
+/* ── LAYOUT ── */
+.shell{display:flex;min-height:100vh;position:relative;z-index:1}
+.sidebar{width:224px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;overflow-y:auto}
+.main{margin-left:224px;flex:1;min-width:0}
+
+/* ── SIDEBAR ── */
+.sb-logo{padding:20px 18px 14px;border-bottom:1px solid var(--border)}
+.sb-title{font-family:var(--fd);font-weight:700;font-size:15px;letter-spacing:-.02em}
+.sb-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.sb-section{padding:14px 14px 5px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.sb-btn{display:flex;align-items:center;gap:9px;padding:7px 14px;color:var(--muted);font-size:12px;border-radius:4px;margin:1px 8px;transition:all .12s;cursor:pointer;border:none;background:none;width:calc(100% - 16px);text-align:left;font-family:var(--fm)}
+.sb-btn:hover{background:var(--bg3);color:var(--text)}
+.sb-btn.active{background:var(--bg3);color:var(--accent)}
+.sb-count{margin-left:auto;font-size:10px;padding:1px 7px;border-radius:10px;background:var(--bg4);color:var(--muted)}
+.sb-count.warn{background:rgba(232,162,58,.15);color:#F0BE6A}
+.sb-count.ok{background:rgba(91,174,118,.15);color:#7ACD96}
+
+.sb-sys{margin-top:auto;padding:14px;border-top:1px solid var(--border)}
+.sb-sys-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;font-size:11px}
+.sb-sys-lbl{display:flex;align-items:center;gap:7px;color:var(--muted)}
+.sb-sys-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
+.sb-sys-val{font-weight:500}
+
+/* ── TOPBAR ── */
+.topbar{height:50px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(13,15,14,.92);backdrop-filter:blur(12px);position:sticky;top:0;z-index:40}
+.topbar-title{font-family:var(--fd);font-size:15px;font-weight:700;letter-spacing:-.02em}
+.search-wrap{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:5px 11px}
+.search-wrap input{background:none;border:none;outline:none;color:var(--text);font-family:var(--fm);font-size:12px;width:220px}
+.search-wrap input::placeholder{color:var(--muted)}
+
+/* ── VIEWS ── */
+.view{display:none;padding:22px}
+.view.active{display:block}
+
+/* ── UPLOAD SCREEN ── */
+.upload-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 50px);padding:40px 24px;text-align:center}
+.upload-title{font-family:var(--fd);font-size:26px;font-weight:800;letter-spacing:-.03em;margin-bottom:8px}
+.upload-sub{color:var(--muted);font-size:13px;margin-bottom:48px;max-width:440px;line-height:1.8}
+.upload-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%;max-width:720px;margin-bottom:32px}
+.upload-zone{background:var(--bg2);border:1.5px dashed var(--border-hi);border-radius:10px;padding:28px 20px;cursor:pointer;transition:all .15s;position:relative;display:flex;flex-direction:column;align-items:center;gap:10px}
+.upload-zone:hover{border-color:var(--accent);background:var(--bg3)}
+.upload-zone.loaded{border-style:solid;border-color:var(--ok)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.uz-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:700;font-size:17px}
+.uz-name{font-family:var(--fd);font-weight:600;font-size:13px}
+.uz-status{font-size:10px;color:var(--muted)}
+.uz-file{font-size:10px;color:var(--ok);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn-analyze{padding:12px 32px;background:var(--accent);border:none;border-radius:5px;color:var(--bg);font-family:var(--fm);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;letter-spacing:.02em}
+.btn-analyze:hover{background:#9ECFBB;transform:translateY(-1px)}
+.btn-analyze:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.upload-hint{font-size:11px;color:var(--muted);margin-top:12px}
+
+/* ── METRICS ── */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px 18px;cursor:pointer;transition:background .12s}
+.mc:hover{background:var(--bg3)}
+.mc-val{font-family:var(--fd);font-size:30px;font-weight:800;line-height:1;margin-bottom:4px}
+.mc-lbl{font-size:11px;color:var(--muted)}
+.mc-sub{font-size:10px;margin-top:3px}
+
+/* ── CHARTS ── */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px}
+.card-title{font-family:var(--fd);font-size:13px;font-weight:600;margin-bottom:10px}
+.chart-wrap{position:relative;height:180px}
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:10px;color:var(--muted);margin-bottom:8px}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-sq{width:8px;height:8px;border-radius:2px}
+
+/* ── CARDS ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.fsel{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:5px 9px;color:var(--text);font-family:var(--fm);font-size:11px;outline:none;cursor:pointer}
+.fsel:focus{border-color:var(--accent)}
+.count-lbl{margin-left:auto;font-size:11px;color:var(--muted)}
+.btn-reset{background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:var(--fm);font-size:11px;cursor:pointer;transition:all .12s}
+.btn-reset:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;max-height:calc(100vh - 200px);overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{font-size:10px;font-weight:400;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg2);z-index:2}
+td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap}
+.b-ok{background:rgba(91,174,118,.14);color:#7ACD96}
+.b-warn{background:rgba(232,162,58,.14);color:#F0BE6A}
+.b-err{background:rgba(217,91,91,.14);color:#E88080}
+.b-prm{background:rgba(199,70,52,.12);color:#E8856E}
+.b-fox{background:rgba(27,93,170,.12);color:#7AABDF}
+.b-snow{background:rgba(129,181,161,.12);color:var(--snow)}
+.b-all{background:rgba(91,174,118,.12);color:#7ACD96}
+.b-2{background:rgba(129,181,161,.1);color:#81B5A1}
+.b-1{background:rgba(232,162,58,.1);color:#F0BE6A}
+
+/* ── SYS CHECK ── */
+.sc{display:inline-flex;align-items:center;justify-content:center;width:22px;height:18px;border-radius:3px;font-size:9px;font-weight:600}
+.sc-y{background:rgba(91,174,118,.15);color:#7ACD96}
+.sc-n{background:rgba(255,255,255,.04);color:var(--bg4)}
+
+/* ── ALERT ── */
+.alert{display:flex;gap:10px;padding:11px 14px;border-radius:6px;margin-bottom:14px;font-size:11.5px;line-height:1.75}
+.alert-warn{background:rgba(232,162,58,.07);border:1px solid rgba(232,162,58,.2);color:#F0BE6A}
+.alert-info{background:rgba(129,181,161,.07);border:1px solid rgba(129,181,161,.2);color:var(--accent)}
+.alert-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+
+/* ── DETAIL PANEL ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.panel{background:var(--bg2);border:1px solid var(--border-hi);border-radius:12px;width:500px;max-width:94vw;max-height:88vh;overflow-y:auto;padding:24px;position:relative}
+.panel-close{position:absolute;top:16px;right:18px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;transition:color .12s}
+.panel-close:hover{color:var(--text)}
+.panel-name{font-family:var(--fd);font-size:20px;font-weight:700;margin-bottom:3px}
+.panel-email{font-size:11px;color:var(--muted);margin-bottom:16px}
+.panel-section{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px;padding-top:14px;border-top:1px solid var(--border)}
+.panel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.panel-cell{background:var(--bg3);border-radius:6px;padding:10px 12px}
+.pc-sys{font-size:9px;color:var(--muted);margin-bottom:5px;letter-spacing:.05em}
+.pc-val{font-size:12px}
+.pc-ad{font-size:10px;color:var(--muted);margin-top:3px}
+.panel-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.kv{display:flex;flex-direction:column;gap:2px;flex:1;min-width:120px}
+.kv-k{font-size:9px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.kv-v{font-size:12px}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-title">UserRecon</div>
+    <div class="sb-sub">Oracle PRM · FOX · ServiceNow</div>
+  </div>
+
+  <div class="sb-section">Viste</div>
+  <button class="sb-btn active" onclick="nav('upload')" id="nav-upload">
+    <span>↑</span> Carica file
+  </button>
+  <button class="sb-btn" onclick="nav('overview')" id="nav-overview">
+    <span>⊟</span> Panoramica
+  </button>
+  <button class="sb-btn" onclick="nav('matching')" id="nav-matching">
+    <span>⌖</span> Tutti gli utenti
+    <span class="sb-count" id="cnt-total">–</span>
+  </button>
+  <button class="sb-btn" onclick="nav('gaps')" id="nav-gaps">
+    <span>⚠</span> Gap da verificare
+    <span class="sb-count warn" id="cnt-gaps">–</span>
+  </button>
+
+  <div class="sb-sys" id="sb-sys" style="display:none">
+    <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Export caricato</div>
+    <div class="sb-sys-row">
+      <span class="sb-sys-lbl"><span class="sb-sys-dot" style="background:#C74634"></span>Oracle PRM</span>
+      <span class="sb-sys-val" id="cnt-prm">–</span>
+    </div>
+    <div class="sb-sys-row">
+      <span class="sb-sys-lbl"><span class="sb-sys-dot" style="background:#1B5DAA"></span>FOX</span>
+      <span class="sb-sys-val" id="cnt-fox">–</span>
+    </div>
+    <div class="sb-sys-row">
+      <span class="sb-sys-lbl"><span class="sb-sys-dot" style="background:#81B5A1"></span>ServiceNow</span>
+      <span class="sb-sys-val" id="cnt-snow">–</span>
+    </div>
+    <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:8px">
+      <div class="sb-sys-row">
+        <span style="font-size:10px;color:var(--muted)">Data export</span>
+        <span style="font-size:10px;color:var(--accent)" id="export-date">–</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Carica i file</div>
+    <div class="search-wrap" id="search-wrap" style="display:none">
+      <span style="color:var(--muted);font-size:13px">⌕</span>
+      <input type="text" id="globalSearch" placeholder="Cerca nome, email, AD domain…" oninput="applyFilters()">
+    </div>
+  </div>
+
+  <!-- ══ UPLOAD ══ -->
+  <div class="view active" id="view-upload">
+    <div class="upload-screen">
+      <div class="upload-title">User Reconciliation</div>
+      <div class="upload-sub">Carica i 3 export per confrontare le utenze di Oracle PRM, FOX e ServiceNow</div>
+
+      <div class="upload-grid">
+        <div class="upload-zone" id="zone-prm">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('prm',this)">
+          <div class="uz-icon" style="background:rgba(199,70,52,.15);color:#E8856E">O</div>
+          <div class="uz-name">Oracle PRM</div>
+          <div class="uz-status" id="st-prm">Carica Excel / CSV</div>
+          <div class="uz-file" id="fn-prm"></div>
+        </div>
+        <div class="upload-zone" id="zone-fox">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('fox',this)">
+          <div class="uz-icon" style="background:rgba(27,93,170,.15);color:#7AABDF">F</div>
+          <div class="uz-name">FOX</div>
+          <div class="uz-status" id="st-fox">Carica Excel / CSV</div>
+          <div class="uz-file" id="fn-fox"></div>
+        </div>
+        <div class="upload-zone" id="zone-snow">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('snow',this)">
+          <div class="uz-icon" style="background:rgba(129,181,161,.15);color:#81B5A1">S</div>
+          <div class="uz-name">ServiceNow</div>
+          <div class="uz-status" id="st-snow">Carica Excel / CSV</div>
+          <div class="uz-file" id="fn-snow"></div>
+        </div>
+      </div>
+
+      <button class="btn-analyze" id="btn-analyze" disabled onclick="runAnalysis()">▶ Analizza</button>
+      <div class="upload-hint">Tutti i dati restano nel browser — nessun file viene inviato a server esterni</div>
+    </div>
+  </div>
+
+  <!-- ══ OVERVIEW ══ -->
+  <div class="view" id="view-overview">
+    <div class="metrics">
+      <div class="mc" onclick="nav('matching')">
+        <div class="mc-val" id="m-total">–</div>
+        <div class="mc-lbl">Utenti unici totali</div>
+        <div class="mc-sub" style="color:var(--muted)">dai 3 sistemi combinati</div>
+      </div>
+      <div class="mc" onclick="filterAndGo('all3')">
+        <div class="mc-val" style="color:#7ACD96" id="m-all3">–</div>
+        <div class="mc-lbl">In tutti e 3 i sistemi</div>
+        <div class="mc-sub" style="color:#7ACD96" id="m-all3-pct">–</div>
+      </div>
+      <div class="mc" onclick="filterAndGo('2sys')">
+        <div class="mc-val" style="color:#F0BE6A" id="m-2sys">–</div>
+        <div class="mc-lbl">In 2 sistemi</div>
+        <div class="mc-sub" style="color:var(--muted)">verificare</div>
+      </div>
+      <div class="mc" onclick="nav('gaps')">
+        <div class="mc-val" style="color:#E88080" id="m-1sys">–</div>
+        <div class="mc-lbl">In 1 solo sistema</div>
+        <div class="mc-sub" style="color:#E88080">azione richiesta</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="card-title">Utenti per sistema</div>
+        <div class="legend">
+          <span class="legend-item"><span class="legend-sq" style="background:#C74634"></span>Oracle PRM</span>
+          <span class="legend-item"><span class="legend-sq" style="background:#1B5DAA"></span>FOX</span>
+          <span class="legend-item"><span class="legend-sq" style="background:#81B5A1"></span>ServiceNow</span>
+        </div>
+        <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="card-title">Distribuzione copertura</div>
+        <div class="legend" id="pie-legend"></div>
+        <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Matrice combinazioni</div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Combinazione sistemi</th>
+          <th style="text-align:center">Utenti</th>
+          <th style="text-align:center">%</th>
+          <th>Diagnosi</th>
+        </tr></thead>
+        <tbody id="matrix-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ MATCHING ══ -->
+  <div class="view" id="view-matching">
+    <div class="filter-bar">
+      <select class="fsel" id="f-cov" onchange="applyFilters()">
+        <option value="">Tutta la copertura</option>
+        <option value="all3">Tutti e 3</option>
+        <option value="2sys">In 2 sistemi</option>
+        <option value="1sys">In 1 sistema</option>
+      </select>
+      <select class="fsel" id="f-sys" onchange="applyFilters()">
+        <option value="">Qualsiasi sistema</option>
+        <option value="prm">Ha Oracle PRM</option>
+        <option value="fox">Ha FOX</option>
+        <option value="snow">Ha ServiceNow</option>
+      </select>
+      <select class="fsel" id="f-status" onchange="applyFilters()">
+        <option value="">Qualsiasi status</option>
+        <option value="active">Attivo in PRM</option>
+        <option value="inactive">Inattivo in PRM</option>
+      </select>
+      <button class="btn-reset" onclick="resetFilters()">✕ Reset</button>
+      <span class="count-lbl" id="match-count">– utenti</span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>Nome</th>
+          <th>Email</th>
+          <th>AD domain</th>
+          <th style="text-align:center">PRM</th>
+          <th style="text-align:center">FOX</th>
+          <th style="text-align:center">Snow</th>
+          <th>Ruolo</th>
+          <th>Area</th>
+          <th>Copertura</th>
+        </tr></thead>
+        <tbody id="match-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ GAPS ══ -->
+  <div class="view" id="view-gaps">
+
+    <div class="card" id="gap-only-fox" style="display:none">
+      <div class="card-header">
+        <div class="card-title">Solo FOX <span id="gap-fox-count" class="badge b-warn" style="margin-left:8px"></span></div>
+      </div>
+      <div class="alert alert-warn">
+        <span class="alert-icon">⚠</span>
+        <div>Presenti in FOX ma assenti da Oracle PRM e ServiceNow. Utenti creati manualmente in FOX o dismessi senza deprovisioning?</div>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Nome</th><th>Email</th><th>AD domain FOX</th><th>In FOX dal</th></tr></thead>
+        <tbody id="body-only-fox"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card" id="gap-prm-fox" style="display:none">
+      <div class="card-header">
+        <div class="card-title">PRM + FOX — mancano in ServiceNow <span id="gap-prm-fox-count" class="badge b-warn" style="margin-left:8px"></span></div>
+      </div>
+      <div class="alert alert-warn">
+        <span class="alert-icon">⚠</span>
+        <div>Attivi in Oracle PRM e FOX ma non ancora creati in ServiceNow. Verificare se la sync delle 21:00 li ha processati.</div>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Nome</th><th>Email</th><th>AD domain</th><th>Start PRM</th><th>Start FOX</th><th>Ruolo</th></tr></thead>
+        <tbody id="body-prm-fox"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card" id="gap-only-snow" style="display:none">
+      <div class="card-header">
+        <div class="card-title">Solo ServiceNow <span id="gap-snow-count" class="badge b-warn" style="margin-left:8px"></span></div>
+      </div>
+      <div class="alert alert-warn">
+        <span class="alert-icon">⚠</span>
+        <div>Attivi in ServiceNow ma assenti da Oracle PRM e FOX. Creati manualmente o dismessi senza deprovisioning da Snow?</div>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Nome</th><th>Email</th><th>AD domain</th><th>Tipo</th><th>Start Snow</th></tr></thead>
+        <tbody id="body-only-snow"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card" id="gap-only-prm" style="display:none">
+      <div class="card-header">
+        <div class="card-title">Solo Oracle PRM <span id="gap-prm-count" class="badge b-warn" style="margin-left:8px"></span></div>
+      </div>
+      <div class="alert alert-info">
+        <span class="alert-icon">ℹ</span>
+        <div>Presenti solo in Oracle PRM. Se ACTIVE: probabilmente nuovi, in attesa della sync delle 21:00. Se INACTIVE: verificare se la dismissione è stata propagata.</div>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Nome</th><th>Email</th><th>Status PRM</th><th>Start date</th><th>Ruolo</th><th>Shop</th></tr></thead>
+        <tbody id="body-only-prm"></tbody>
+      </table></div>
+    </div>
+
+    <div class="card" id="gap-prm-snow" style="display:none">
+      <div class="card-header">
+        <div class="card-title">PRM + ServiceNow — mancano in FOX <span id="gap-prm-snow-count" class="badge b-warn" style="margin-left:8px"></span></div>
+      </div>
+      <div class="alert alert-info">
+        <span class="alert-icon">ℹ</span>
+        <div>Presenti in Oracle PRM e ServiceNow ma non in FOX. Verificare se il provisioning verso FOX (16:30) è andato a buon fine.</div>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Nome</th><th>Email</th><th>AD domain</th><th>Ruolo</th><th>Shop</th></tr></thead>
+        <tbody id="body-prm-snow"></tbody>
+      </table></div>
+    </div>
+
+    <div id="no-gaps" style="display:none;text-align:center;padding:60px;color:var(--muted)">
+      <div style="font-size:32px;margin-bottom:12px">✓</div>
+      <div style="font-family:var(--fd);font-size:16px;margin-bottom:6px">Nessun gap rilevato</div>
+      <div style="font-size:12px">Tutti gli utenti sono allineati nei 3 sistemi</div>
+    </div>
+
+  </div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- DETAIL OVERLAY -->
+<div class="overlay" id="overlay" onclick="closeOverlay(event)">
+  <div class="panel" id="panel">
+    <button class="panel-close" onclick="closePanel()">✕</button>
+    <div class="panel-name" id="p-name"></div>
+    <div class="panel-email" id="p-email"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap" id="p-badges"></div>
+
+    <div class="panel-section">Presenza nei sistemi</div>
+    <div class="panel-grid" id="p-grid"></div>
+
+    <div class="panel-section" id="p-detail-section">Dati Oracle PRM</div>
+    <div id="p-detail"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const RAW = { prm: null, fox: null, snow: null };
+let DATA = [];
+let charts = {};
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+function nav(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
+  const titles = { upload: 'Carica i file', overview: 'Panoramica', matching: 'Tutti gli utenti', gaps: 'Gap da verificare' };
+  document.getElementById('page-title').textContent = titles[id] || id;
+  const sw = document.getElementById('search-wrap');
+  sw.style.display = (id === 'matching') ? 'flex' : 'none';
+  if (id === 'matching') applyFilters();
+}
+
+function filterAndGo(cov) {
+  document.getElementById('f-cov').value = cov;
+  nav('matching');
+}
+
+// ═══════════════════════════════════════════
+// FILE LOADING
+// ═══════════════════════════════════════════
+function loadFile(sys, input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('st-' + sys).textContent = 'Caricamento…';
+  document.getElementById('fn-' + sys).textContent = '';
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      RAW[sys] = rows;
+      document.getElementById('st-' + sys).textContent = rows.length + ' righe';
+      document.getElementById('fn-' + sys).textContent = file.name;
+      document.getElementById('zone-' + sys).classList.add('loaded');
+      checkReady();
+    } catch (err) {
+      document.getElementById('st-' + sys).textContent = 'Errore lettura file';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function checkReady() {
+  const ok = RAW.prm && RAW.fox && RAW.snow;
+  document.getElementById('btn-analyze').disabled = !ok;
+}
+
+// ═══════════════════════════════════════════
+// FIELD ALIASES
+// ═══════════════════════════════════════════
+const ALIASES = {
+  email:      ['amplifon email','email','mail','email_address','primary_email','work_email','pec','user id','userid'],
+  firstname:  ['first name','firstname','nome','given_name','nome_dipendente'],
+  lastname:   ['last name','lastname','cognome','surname','family_name'],
+  fullname:   ['user_descr','name','full_name','display_name','nome_completo'],
+  username:   ['username','user_name','login','loginname','samaccountname','user_id'],
+  ad_domain:  ['ad domain','ad_domain','ad doman','uad','active_directory','dominio'],
+  employee_id:['person number','employee_code','worker_id','emp_id','employee_id'],
+  status:     ['assignment status','status_code','active','status','stato'],
+  job_title:  ['job title','job_title','structure code (it)'],
+  area:       ['area description'],
+  shop:       ['shop description'],
+  start_date: ['assignment start date','dt_start','start date','start_date'],
+  person_type:['person type'],
+};
+
+function getCol(headers, key) {
+  const aliases = ALIASES[key] || [];
+  for (const h of headers) {
+    const hn = h.toLowerCase().trim().replace(/\s+/g,' ');
+    for (const a of aliases) {
+      if (hn === a) return h;
+    }
+  }
+  return null;
+}
+
+function getVal(row, headers, key) {
+  const col = getCol(headers, key);
+  return col ? String(row[col] || '').trim() : '';
+}
+
+function normEmail(e) { return e.toLowerCase().trim(); }
+function normUser(s) {
+  s = s.replace(/\\\\/g,'\\');
+  return s.includes('\\') ? s.split('\\').pop().toLowerCase().trim() : s.toLowerCase().trim();
+}
+
+// ═══════════════════════════════════════════
+// ANALYSIS
+// ═══════════════════════════════════════════
+function runAnalysis() {
+  const prmH = Object.keys(RAW.prm[0] || {});
+  const foxH = Object.keys(RAW.fox[0] || {});
+  const snwH = Object.keys(RAW.snow[0] || {});
+
+  // build email index
+  function idx(rows, headers, emailKey) {
+    const map = {};
+    rows.forEach(r => {
+      const e = normEmail(getVal(r, headers, emailKey || 'email'));
+      if (e) map[e] = r;
+    });
+    return map;
+  }
+
+  const prmIdx = idx(RAW.prm, prmH, 'email');
+  const foxIdx = idx(RAW.fox, foxH, 'email');
+  const snwIdx = idx(RAW.snow, snwH, 'email');
+
+  const allEmails = [...new Set([...Object.keys(prmIdx), ...Object.keys(foxIdx), ...Object.keys(snwIdx)])].sort();
+
+  DATA = allEmails.map(e => {
+    const p = prmIdx[e], f = foxIdx[e], s = snwIdx[e];
+    const in_prm = !!p, in_fox = !!f, in_snow = !!s;
+    const sys_count = [in_prm, in_fox, in_snow].filter(Boolean).length;
+
+    const name_prm = p ? (getVal(p, prmH, 'firstname') + ' ' + getVal(p, prmH, 'lastname')).trim() || getVal(p, prmH, 'fullname') : '';
+    const name_fox = f ? getVal(f, foxH, 'fullname') || (getVal(f, foxH, 'firstname') + ' ' + getVal(f, foxH, 'lastname')).trim() : '';
+    const name_snow = s ? getVal(s, snwH, 'fullname') || (getVal(s, snwH, 'firstname') + ' ' + getVal(s, snwH, 'lastname')).trim() : '';
+    const name = name_prm || name_snow || name_fox;
+
+    const ad_prm  = p ? normUser(getVal(p, prmH, 'ad_domain')) : '';
+    const ad_fox  = f ? normUser(getVal(f, foxH, 'ad_domain') || getVal(f, foxH, 'username')) : '';
+    const ad_snow = s ? normUser(getVal(s, snwH, 'ad_domain')) : '';
+    const ad_vals = [ad_prm, ad_fox, ad_snow].filter(Boolean);
+    const ad_conflict = ad_vals.length > 1 && new Set(ad_vals).size > 1;
+    const ad = ad_prm || ad_fox || ad_snow;
+
+    return {
+      email: e, name, name_prm, name_fox, name_snow,
+      in_prm, in_fox, in_snow, sys_count,
+      ad, ad_prm, ad_fox, ad_snow, ad_conflict,
+      status_prm: p ? getVal(p, prmH, 'status') : '',
+      status_fox: f ? getVal(f, foxH, 'status') : '',
+      status_snow: s ? getVal(s, snwH, 'status') : '',
+      start_prm: p ? getVal(p, prmH, 'start_date') : '',
+      start_fox: f ? getVal(f, foxH, 'start_date') : '',
+      start_snow: s ? getVal(s, snwH, 'start_date') : '',
+      job_title: p ? getVal(p, prmH, 'job_title') : (s ? getVal(s, snwH, 'job_title') : ''),
+      person_type: p ? getVal(p, prmH, 'person_type') : '',
+      area: p ? getVal(p, prmH, 'area') : '',
+      shop: p ? getVal(p, prmH, 'shop') : '',
+      employee_id: p ? getVal(p, prmH, 'employee_id') : (f ? getVal(f, foxH, 'employee_id') : ''),
+    };
+  });
+
+  // set today as export date
+  document.getElementById('export-date').textContent = new Date().toLocaleDateString('it-IT');
+
+  // update sidebar counts
+  document.getElementById('cnt-prm').textContent = RAW.prm.length;
+  document.getElementById('cnt-fox').textContent = RAW.fox.length;
+  document.getElementById('cnt-snow').textContent = RAW.snow.length;
+  document.getElementById('cnt-total').textContent = DATA.length;
+  const gaps = DATA.filter(r => r.sys_count === 1).length;
+  document.getElementById('cnt-gaps').textContent = gaps;
+  document.getElementById('sb-sys').style.display = 'block';
+
+  renderOverview();
+  renderGaps();
+  renderMatchTable(DATA);
+
+  nav('overview');
+}
+
+// ═══════════════════════════════════════════
+// OVERVIEW
+// ═══════════════════════════════════════════
+function renderOverview() {
+  const total = DATA.length;
+  const all3  = DATA.filter(r => r.sys_count === 3).length;
+  const two   = DATA.filter(r => r.sys_count === 2).length;
+  const one   = DATA.filter(r => r.sys_count === 1).length;
+
+  document.getElementById('m-total').textContent = total;
+  document.getElementById('m-all3').textContent = all3;
+  document.getElementById('m-all3-pct').textContent = Math.round(all3/total*100) + '% del totale';
+  document.getElementById('m-2sys').textContent = two;
+  document.getElementById('m-1sys').textContent = one;
+
+  // destroy old charts
+  Object.values(charts).forEach(c => { try { c.destroy(); } catch(e){} });
+  charts = {};
+
+  const oCount = DATA.filter(r => r.in_prm).length;
+  const fCount = DATA.filter(r => r.in_fox).length;
+  const sCount = DATA.filter(r => r.in_snow).length;
+
+  charts.bar = new Chart(document.getElementById('barChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Oracle PRM', 'FOX', 'ServiceNow'],
+      datasets: [{
+        data: [oCount, fCount, sCount],
+        backgroundColor: ['#C74634', '#1B5DAA', '#81B5A1'],
+        borderRadius: 4, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { color: '#6B7370', stepSize: 10 }, grid: { color: 'rgba(255,255,255,0.04)' } }, x: { ticks: { color: '#6B7370' }, grid: { display: false } } }
+    }
+  });
+
+  const COMBOS = [
+    { label: 'Tutti e 3',           check: r => r.in_prm && r.in_fox && r.in_snow,   color: '#5BAE76', diag: '✓ Sincronizzato' },
+    { label: 'PRM + FOX',           check: r => r.in_prm && r.in_fox && !r.in_snow,  color: '#E8A23A', diag: '⚠ Manca in ServiceNow' },
+    { label: 'PRM + Snow',          check: r => r.in_prm && !r.in_fox && r.in_snow,  color: '#E8A23A', diag: '⚠ Manca in FOX (16:30)' },
+    { label: 'FOX + Snow',          check: r => !r.in_prm && r.in_fox && r.in_snow,  color: '#D95B5B', diag: '✗ Manca in Oracle PRM' },
+    { label: 'Solo Oracle PRM',     check: r => r.in_prm && !r.in_fox && !r.in_snow, color: '#C74634', diag: '◉ In attesa sync (21:00)' },
+    { label: 'Solo FOX',            check: r => !r.in_prm && r.in_fox && !r.in_snow, color: '#1B5DAA', diag: '◉ Non in HCM né Snow' },
+    { label: 'Solo ServiceNow',     check: r => !r.in_prm && !r.in_fox && r.in_snow, color: '#81B5A1', diag: '◉ Orfano Snow' },
+  ];
+
+  const mb = document.getElementById('matrix-body');
+  mb.innerHTML = '';
+  COMBOS.forEach(c => {
+    const n = DATA.filter(c.check).length;
+    if (!n) return;
+    const pct = (n/total*100).toFixed(1);
+    mb.innerHTML += `<tr>
+      <td><span class="badge" style="background:${c.color}22;color:${c.color}">${c.label}</span></td>
+      <td style="text-align:center;font-weight:500">${n}</td>
+      <td style="text-align:center;color:var(--muted)">${pct}%</td>
+      <td style="color:var(--muted);font-size:11px">${c.diag}</td>
+    </tr>`;
+  });
+
+  // pie
+  const pieData = COMBOS.map(c => DATA.filter(c.check).length);
+  const pieLeg = document.getElementById('pie-legend');
+  pieLeg.innerHTML = '';
+  COMBOS.forEach((c, i) => {
+    if (!pieData[i]) return;
+    pieLeg.innerHTML += `<span class="legend-item"><span class="legend-sq" style="background:${c.color}"></span>${c.label}: ${pieData[i]}</span>`;
+  });
+
+  charts.pie = new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: {
+      labels: COMBOS.map(c => c.label),
+      datasets: [{ data: pieData, backgroundColor: COMBOS.map(c => c.color), borderWidth: 1, borderColor: '#141716' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+// GAP TABLES
+// ═══════════════════════════════════════════
+function renderGaps() {
+  let hasAny = false;
+
+  function renderGapCard(id, countId, bodyId, rows, rowFn) {
+    const card = document.getElementById(id);
+    if (!rows.length) { card.style.display = 'none'; return; }
+    hasAny = true;
+    card.style.display = 'block';
+    document.getElementById(countId).textContent = rows.length;
+    const tbody = document.getElementById(bodyId);
+    tbody.innerHTML = rows.map(rowFn).join('');
+  }
+
+  renderGapCard('gap-only-fox', 'gap-fox-count', 'body-only-fox',
+    DATA.filter(r => !r.in_prm && r.in_fox && !r.in_snow),
+    r => `<tr onclick="openDetail('${esc(r.email)}')">
+      <td>${r.name || '–'}</td>
+      <td style="color:var(--muted)">${r.email}</td>
+      <td><code style="font-size:10px;color:var(--accent)">${r.ad_fox||'–'}</code></td>
+      <td style="color:var(--muted)">${r.start_fox||'–'}</td>
+    </tr>`
+  );
+
+  renderGapCard('gap-prm-fox', 'gap-prm-fox-count', 'body-prm-fox',
+    DATA.filter(r => r.in_prm && r.in_fox && !r.in_snow),
+    r => `<tr onclick="openDetail('${esc(r.email)}')">
+      <td>${r.name||'–'}</td>
+      <td style="color:var(--muted)">${r.email}</td>
+      <td><code style="font-size:10px;color:var(--accent)">${r.ad||'–'}</code></td>
+      <td style="color:var(--muted)">${r.start_prm||'–'}</td>
+      <td style="color:var(--muted)">${r.start_fox||'–'}</td>
+      <td style="color:var(--muted)">${r.job_title||'–'}</td>
+    </tr>`
+  );
+
+  renderGapCard('gap-only-snow', 'gap-snow-count', 'body-only-snow',
+    DATA.filter(r => !r.in_prm && !r.in_fox && r.in_snow),
+    r => `<tr onclick="openDetail('${esc(r.email)}')">
+      <td>${r.name||'–'}</td>
+      <td style="color:var(--muted)">${r.email}</td>
+      <td><code style="font-size:10px;color:var(--accent)">${r.ad_snow||'–'}</code></td>
+      <td style="color:var(--muted)">${r.job_title||'–'}</td>
+      <td style="color:var(--muted)">${r.start_snow||'–'}</td>
+    </tr>`
+  );
+
+  renderGapCard('gap-only-prm', 'gap-prm-count', 'body-only-prm',
+    DATA.filter(r => r.in_prm && !r.in_fox && !r.in_snow),
+    r => `<tr onclick="openDetail('${esc(r.email)}')">
+      <td>${r.name||'–'}</td>
+      <td style="color:var(--muted)">${r.email}</td>
+      <td><span class="badge ${r.status_prm==='ACTIVE'?'b-ok':'b-err'}">${r.status_prm||'–'}</span></td>
+      <td style="color:var(--muted)">${r.start_prm||'–'}</td>
+      <td style="color:var(--muted)">${r.job_title||'–'}</td>
+      <td style="color:var(--muted);font-size:10px">${r.shop||'–'}</td>
+    </tr>`
+  );
+
+  renderGapCard('gap-prm-snow', 'gap-prm-snow-count', 'body-prm-snow',
+    DATA.filter(r => r.in_prm && !r.in_fox && r.in_snow),
+    r => `<tr onclick="openDetail('${esc(r.email)}')">
+      <td>${r.name||'–'}</td>
+      <td style="color:var(--muted)">${r.email}</td>
+      <td><code style="font-size:10px;color:var(--accent)">${r.ad||'–'}</code></td>
+      <td style="color:var(--muted)">${r.job_title||'–'}</td>
+      <td style="color:var(--muted);font-size:10px">${r.shop||'–'}</td>
+    </tr>`
+  );
+
+  document.getElementById('no-gaps').style.display = hasAny ? 'none' : 'block';
+}
+
+// ═══════════════════════════════════════════
+// MATCH TABLE
+// ═══════════════════════════════════════════
+function renderMatchTable(rows) {
+  document.getElementById('match-count').textContent = rows.length + ' utenti';
+  const tbody = document.getElementById('match-body');
+  tbody.innerHTML = rows.map(r => {
+    const cov = r.sys_count === 3 ? ['b-all','Tutti e 3'] : r.sys_count === 2 ? ['b-2','2 sistemi'] : ['b-1','1 sistema'];
+    return `<tr onclick="openDetail('${esc(r.email)}')"
+      data-cov="${r.sys_count===3?'all3':r.sys_count===2?'2sys':'1sys'}"
+      data-prm="${r.in_prm?'1':'0'}"
+      data-fox="${r.in_fox?'1':'0'}"
+      data-snow="${r.in_snow?'1':'0'}"
+      data-status="${(r.status_prm||'').toLowerCase()}"
+      data-search="${(r.name+' '+r.email+' '+r.ad).toLowerCase()}">
+      <td style="font-weight:500">${r.name||'–'}</td>
+      <td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis">${r.email}</td>
+      <td><code style="font-size:10px;color:var(--accent)">${r.ad||'–'}</code></td>
+      <td style="text-align:center"><span class="sc ${r.in_prm?'sc-y':'sc-n'}">${r.in_prm?'✓':'–'}</span></td>
+      <td style="text-align:center"><span class="sc ${r.in_fox?'sc-y':'sc-n'}">${r.in_fox?'✓':'–'}</span></td>
+      <td style="text-align:center"><span class="sc ${r.in_snow?'sc-y':'sc-n'}">${r.in_snow?'✓':'–'}</span></td>
+      <td style="color:var(--muted);font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.job_title||'–'}</td>
+      <td style="color:var(--muted);font-size:11px">${r.area||'–'}</td>
+      <td><span class="badge ${cov[0]}">${cov[1]}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// FILTERS
+// ═══════════════════════════════════════════
+function applyFilters() {
+  const q   = (document.getElementById('globalSearch')?.value || '').toLowerCase();
+  const cov = document.getElementById('f-cov')?.value || '';
+  const sys = document.getElementById('f-sys')?.value || '';
+  const st  = document.getElementById('f-status')?.value || '';
+
+  const rows = document.querySelectorAll('#match-body tr');
+  let visible = 0;
+  rows.forEach(tr => {
+    const matchQ   = !q   || (tr.dataset.search || '').includes(q);
+    const matchCov = !cov || tr.dataset.cov === cov;
+    const matchSys = !sys || tr.dataset[sys] === '1';
+    const matchSt  = !st  || (st === 'active' ? tr.dataset.status === 'active' : tr.dataset.status !== 'active' && tr.dataset.status !== '');
+    const show = matchQ && matchCov && matchSys && matchSt;
+    tr.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('match-count').textContent = visible + ' utenti';
+}
+
+function resetFilters() {
+  ['f-cov','f-sys','f-status'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('globalSearch').value = '';
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════
+// DETAIL PANEL
+// ═══════════════════════════════════════════
+function openDetail(email) {
+  const r = DATA.find(d => d.email === email);
+  if (!r) return;
+
+  document.getElementById('p-name').textContent = r.name || r.email;
+  document.getElementById('p-email').textContent = r.email;
+
+  const badges = document.getElementById('p-badges');
+  badges.innerHTML = '';
+  if (r.in_prm) badges.innerHTML += `<span class="badge b-prm">Oracle PRM</span> `;
+  if (r.in_fox) badges.innerHTML += `<span class="badge b-fox">FOX</span> `;
+  if (r.in_snow) badges.innerHTML += `<span class="badge b-snow">ServiceNow</span> `;
+  const cov = r.sys_count === 3 ? '<span class="badge b-all">Tutti e 3</span>' : r.sys_count === 2 ? '<span class="badge b-2">2 sistemi</span>' : '<span class="badge b-1">1 sistema</span>';
+  badges.innerHTML += cov;
+
+  const grid = document.getElementById('p-grid');
+  grid.innerHTML = `
+    <div class="panel-cell">
+      <div class="pc-sys">Oracle PRM</div>
+      <div class="pc-val">${r.in_prm ? '<span style="color:#7ACD96">✓ Presente</span>' : '<span style="color:var(--muted)">– Assente</span>'}</div>
+      ${r.ad_prm ? `<div class="pc-ad">AD: ${r.ad_prm}</div>` : ''}
+      ${r.status_prm ? `<div class="pc-ad">Status: <span style="color:${r.status_prm==='ACTIVE'?'#7ACD96':'#E88080'}">${r.status_prm}</span></div>` : ''}
+    </div>
+    <div class="panel-cell">
+      <div class="pc-sys">FOX</div>
+      <div class="pc-val">${r.in_fox ? '<span style="color:#7ACD96">✓ Presente</span>' : '<span style="color:var(--muted)">– Assente</span>'}</div>
+      ${r.ad_fox ? `<div class="pc-ad">AD: ${r.ad_fox}</div>` : ''}
+      ${r.status_fox ? `<div class="pc-ad">Status: ${r.status_fox}</div>` : ''}
+      ${r.start_fox ? `<div class="pc-ad">Dal: ${r.start_fox.toString().split('T')[0]}</div>` : ''}
+    </div>
+    <div class="panel-cell">
+      <div class="pc-sys">ServiceNow</div>
+      <div class="pc-val">${r.in_snow ? '<span style="color:#7ACD96">✓ Presente</span>' : '<span style="color:var(--muted)">– Assente</span>'}</div>
+      ${r.ad_snow ? `<div class="pc-ad">AD: ${r.ad_snow}</div>` : ''}
+      ${r.status_snow ? `<div class="pc-ad">Attivo: ${r.status_snow}</div>` : ''}
+      ${r.start_snow ? `<div class="pc-ad">Dal: ${r.start_snow.toString().split('T')[0]}</div>` : ''}
+    </div>`;
+
+  const detail = document.getElementById('p-detail');
+  const ds = document.getElementById('p-detail-section');
+  if (r.job_title || r.area || r.shop || r.start_prm || r.employee_id) {
+    ds.style.display = 'block';
+    detail.innerHTML = `
+      <div class="panel-row">
+        ${r.job_title ? `<div class="kv"><div class="kv-k">Ruolo</div><div class="kv-v">${r.job_title}</div></div>` : ''}
+        ${r.person_type ? `<div class="kv"><div class="kv-k">Tipo</div><div class="kv-v" style="font-size:11px">${r.person_type}</div></div>` : ''}
+      </div>
+      <div class="panel-row">
+        ${r.shop ? `<div class="kv"><div class="kv-k">Shop</div><div class="kv-v">${r.shop}</div></div>` : ''}
+        ${r.area ? `<div class="kv"><div class="kv-k">Area</div><div class="kv-v">${r.area}</div></div>` : ''}
+      </div>
+      <div class="panel-row">
+        ${r.start_prm ? `<div class="kv"><div class="kv-k">Start PRM</div><div class="kv-v">${r.start_prm}</div></div>` : ''}
+        ${r.employee_id ? `<div class="kv"><div class="kv-k">Employee ID</div><div class="kv-v">${r.employee_id}</div></div>` : ''}
+      </div>`;
+  } else {
+    ds.style.display = 'none';
+    detail.innerHTML = '';
+  }
+
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeOverlay(e) {
+  if (e.target === document.getElementById('overlay')) closePanel();
+}
+function closePanel() {
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function esc(s) { return s.replace(/'/g, "\\'"); }
+</script>
+</body>
+</html>
