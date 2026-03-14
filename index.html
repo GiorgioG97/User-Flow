@@ -153,7 +153,7 @@ footer{border-top:1px solid var(--border);padding:36px 0}
         UserRecon
       </div>
       <ul class="nav-links">
-        <li><a href="#flow">Flusso</a></li>
+        <li><a href="#exports">Export</a></li>
         <li><a href="#features">Flusso</a></li>
         <li><a href="#sheets">Google Sheets</a></li>
         <li><a href="#fields">Campi</a></li>
@@ -256,6 +256,101 @@ footer{border-top:1px solid var(--border);padding:36px 0}
         <span>◉ PRM → FOX: <strong>16:30</strong> CET</span>
         <span>◉ AD → Azure: ogni <strong>15/30 min</strong></span>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPORT GUIDE -->
+<section class="feat-s" id="exports" style="padding-bottom:0">
+  <div class="wrap">
+    <div class="rev">
+      <div class="sec-lbl">Come recuperare i file</div>
+      <h2>Dove estrarre i 3 export</h2>
+      <p class="sec-sub" style="margin-bottom:32px">Prima di aprire la dashboard, estrai i file aggiornati da ciascun sistema seguendo queste istruzioni.</p>
+    </div>
+
+    <div class="rev" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:0">
+
+      <!-- ORACLE -->
+      <div style="background:var(--bg2);padding:28px 24px;position:relative;transition:background .15s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+        <div style="position:absolute;top:20px;right:20px;font-size:10px;color:var(--muted);opacity:.35">01</div>
+        <div style="width:38px;height:38px;border-radius:6px;background:rgba(199,70,52,.14);border:1px solid rgba(199,70,52,.25);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:700;font-size:15px;color:#E8856E;margin-bottom:16px">O</div>
+        <div style="font-family:var(--fd);font-weight:600;font-size:14px;margin-bottom:8px">Oracle PRM</div>
+        <div style="color:var(--muted);font-size:11.5px;line-height:1.8;margin-bottom:16px">
+          Vai su Oracle Cloud → Report &amp; Analytics e cerca il report:
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:10px 13px;font-size:11px;color:#9ECFBB;font-family:var(--fm);line-height:1.6;margin-bottom:16px">
+          "PRM Person Masterdata"
+        </div>
+        <div style="color:var(--muted);font-size:11px;line-height:1.75">
+          Esegui il report, esporta in formato <strong style="color:var(--text)">Excel (.xlsx)</strong> e salvalo localmente.
+        </div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase">Colonne chiave nel file</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            <span style="padding:2px 7px;background:rgba(199,70,52,.08);border:1px solid rgba(199,70,52,.18);border-radius:3px;font-size:10px;color:#E8856E">AMPLIFON EMAIL</span>
+            <span style="padding:2px 7px;background:rgba(199,70,52,.08);border:1px solid rgba(199,70,52,.18);border-radius:3px;font-size:10px;color:#E8856E">AD DOMAIN</span>
+            <span style="padding:2px 7px;background:rgba(199,70,52,.08);border:1px solid rgba(199,70,52,.18);border-radius:3px;font-size:10px;color:#E8856E">PERSON NUMBER</span>
+            <span style="padding:2px 7px;background:rgba(199,70,52,.08);border:1px solid rgba(199,70,52,.18);border-radius:3px;font-size:10px;color:#E8856E">ASSIGNMENT STATUS</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SERVICENOW -->
+      <div style="background:var(--bg2);padding:28px 24px;position:relative;transition:background .15s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+        <div style="position:absolute;top:20px;right:20px;font-size:10px;color:var(--muted);opacity:.35">02</div>
+        <div style="width:38px;height:38px;border-radius:6px;background:rgba(129,181,161,.12);border:1px solid rgba(129,181,161,.25);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:700;font-size:15px;color:var(--snow);margin-bottom:16px">S</div>
+        <div style="font-family:var(--fd);font-weight:600;font-size:14px;margin-bottom:8px">ServiceNow</div>
+        <div style="color:var(--muted);font-size:11.5px;line-height:1.8;margin-bottom:16px">
+          Accedi alla lista utenti IT con il filtro già impostato tramite il link diretto:
+        </div>
+        <a href="https://amplifongroup.service-now.com/now/nav/ui/classic/params/target/sys_user_list.do%3Fsysparm_query%3Du_person_number_pISNOTEMPTY%255Eu_user_countryINit%26sysparm_first_row%3D1%26sysparm_view%3D%26sysparm_choice_query_raw%3Du_user_countrySTARTSWITHIT%26sysparm_list_header_search%3Dtrue"
+           target="_blank"
+           style="display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid rgba(129,181,161,.25);border-radius:5px;padding:10px 13px;font-size:11px;color:var(--snow);font-family:var(--fm);text-decoration:none;transition:border-color .15s;margin-bottom:16px;word-break:break-all;line-height:1.6"
+           onmouseover="this.style.borderColor='rgba(129,181,161,.5)'" onmouseout="this.style.borderColor='rgba(129,181,161,.25)'">
+          <span style="flex-shrink:0;font-size:14px">↗</span>
+          sys_user_list · filtro IT
+        </a>
+        <div style="color:var(--muted);font-size:11px;line-height:1.75">
+          Una volta nella lista, clicca sull'icona hamburger → <strong style="color:var(--text)">Export → Excel</strong> per scaricare tutti gli utenti visualizzati.
+        </div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase">Colonne chiave nel file</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            <span style="padding:2px 7px;background:rgba(129,181,161,.08);border:1px solid rgba(129,181,161,.18);border-radius:3px;font-size:10px;color:var(--snow)">User ID</span>
+            <span style="padding:2px 7px;background:rgba(129,181,161,.08);border:1px solid rgba(129,181,161,.18);border-radius:3px;font-size:10px;color:var(--snow)">AD Doman</span>
+            <span style="padding:2px 7px;background:rgba(129,181,161,.08);border:1px solid rgba(129,181,161,.18);border-radius:3px;font-size:10px;color:var(--snow)">Name</span>
+            <span style="padding:2px 7px;background:rgba(129,181,161,.08);border:1px solid rgba(129,181,161,.18);border-radius:3px;font-size:10px;color:var(--snow)">Active</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- FOX -->
+      <div style="background:var(--bg2);padding:28px 24px;position:relative;transition:background .15s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='var(--bg2)'">
+        <div style="position:absolute;top:20px;right:20px;font-size:10px;color:var(--muted);opacity:.35">03</div>
+        <div style="width:38px;height:38px;border-radius:6px;background:rgba(27,93,170,.14);border:1px solid rgba(27,93,170,.25);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:700;font-size:15px;color:#7AABDF;margin-bottom:16px">F</div>
+        <div style="font-family:var(--fd);font-weight:600;font-size:14px;margin-bottom:8px">FOX</div>
+        <div style="color:var(--muted);font-size:11.5px;line-height:1.8;margin-bottom:16px">
+          Connettiti al database FOX ed esegui una SELECT sulla tabella utenti:
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:10px 13px;font-size:11px;color:#9ECFBB;font-family:var(--fm);line-height:1.7;margin-bottom:16px;white-space:pre">SELECT * FROM <span style="color:#C3E88D">US_B_USER</span>
+WHERE <span style="color:#C792EA">STATUS_CODE</span> = <span style="color:#C3E88D">'ATT'</span>
+  AND <span style="color:#C792EA">COMPANY_CODE</span> = <span style="color:#F78C6C">1</span></div>
+        <div style="color:var(--muted);font-size:11px;line-height:1.75">
+          Esporta il risultato in <strong style="color:var(--text)">Excel (.xlsx)</strong> o CSV. Includere almeno le colonne a destra.
+        </div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase">Colonne chiave nel file</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            <span style="padding:2px 7px;background:rgba(27,93,170,.08);border:1px solid rgba(27,93,170,.2);border-radius:3px;font-size:10px;color:#7AABDF">EMAIL</span>
+            <span style="padding:2px 7px;background:rgba(27,93,170,.08);border:1px solid rgba(27,93,170,.2);border-radius:3px;font-size:10px;color:#7AABDF">USER_NAME</span>
+            <span style="padding:2px 7px;background:rgba(27,93,170,.08);border:1px solid rgba(27,93,170,.2);border-radius:3px;font-size:10px;color:#7AABDF">USER_DESCR</span>
+            <span style="padding:2px 7px;background:rgba(27,93,170,.08);border:1px solid rgba(27,93,170,.2);border-radius:3px;font-size:10px;color:#7AABDF">EMPLOYEE_CODE</span>
+            <span style="padding:2px 7px;background:rgba(27,93,170,.08);border:1px solid rgba(27,93,170,.2);border-radius:3px;font-size:10px;color:#7AABDF">STATUS_CODE</span>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
