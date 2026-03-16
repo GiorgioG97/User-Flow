@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Check Nuovi Inserimenti · Amplifon IT</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:#0D0F0E; --bg2:#141716; --bg3:#1C1F1E; --bg4:#232624;
+  --border:rgba(255,255,255,0.07); --border-hi:rgba(255,255,255,0.15);
+  --text:#E8EAE9; --muted:#6B7370; --accent:#81B5A1;
+  --oracle:#C74634; --fox:#1B5DAA; --snow:#81B5A1;
+  --ok:#5BAE76; --warn:#E8A23A; --danger:#D95B5B;
+  --fm:'JetBrains Mono',monospace; --fd:'Syne',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;line-height:1.55;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(129,181,161,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(129,181,161,.022) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+
+/* ── LAYOUT ── */
+.shell{display:flex;min-height:100vh;position:relative;z-index:1}
+.sidebar{width:224px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;overflow-y:auto}
+.main{margin-left:224px;flex:1;min-width:0}
+
+/* ── SIDEBAR ── */
+.sb-logo{padding:20px 18px 14px;border-bottom:1px solid var(--border)}
+.sb-title{font-family:var(--fd);font-weight:700;font-size:15px;letter-spacing:-.02em}
+.sb-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.sb-tag{display:inline-block;margin-top:6px;padding:2px 8px;background:rgba(232,162,58,.1);border:1px solid rgba(232,162,58,.25);border-radius:10px;font-size:9px;color:#F0BE6A;letter-spacing:.05em}
+.sb-section{padding:14px 14px 5px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.sb-btn{display:flex;align-items:center;gap:9px;padding:7px 14px;color:var(--muted);font-size:12px;border-radius:4px;margin:1px 8px;transition:all .12s;cursor:pointer;border:none;background:none;width:calc(100% - 16px);text-align:left;font-family:var(--fm)}
+.sb-btn:hover{background:var(--bg3);color:var(--text)}
+.sb-btn.active{background:var(--bg3);color:var(--accent)}
+.sb-count{margin-left:auto;font-size:10px;padding:1px 7px;border-radius:10px;background:var(--bg4);color:var(--muted)}
+.sb-count.ok{background:rgba(91,174,118,.15);color:#7ACD96}
+.sb-count.warn{background:rgba(232,162,58,.15);color:#F0BE6A}
+.sb-count.err{background:rgba(217,91,91,.15);color:#E88080}
+
+.sb-files{padding:14px;border-top:1px solid var(--border)}
+.sb-file-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;font-size:11px}
+.sb-file-lbl{display:flex;align-items:center;gap:7px;color:var(--muted)}
+.sb-file-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0;background:var(--bg4)}
+.sb-file-dot.loaded{background:var(--ok)}
+.sb-file-val{font-size:10px;color:var(--muted)}
+
+/* ── TOPBAR ── */
+.topbar{height:50px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(13,15,14,.92);backdrop-filter:blur(12px);position:sticky;top:0;z-index:40}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.topbar-title{font-family:var(--fd);font-size:15px;font-weight:700;letter-spacing:-.02em}
+.back-link{font-size:11px;color:var(--muted);text-decoration:none;display:flex;align-items:center;gap:5px;transition:color .12s;padding:4px 8px;border:1px solid var(--border);border-radius:4px}
+.back-link:hover{color:var(--text);border-color:var(--border-hi)}
+.search-wrap{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:5px 11px}
+.search-wrap input{background:none;border:none;outline:none;color:var(--text);font-family:var(--fm);font-size:12px;width:200px}
+.search-wrap input::placeholder{color:var(--muted)}
+
+/* ── VIEWS ── */
+.view{display:none;padding:22px}
+.view.active{display:block}
+
+/* ── UPLOAD SCREEN ── */
+.upload-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 50px);padding:40px 24px}
+.upload-title{font-family:var(--fd);font-size:24px;font-weight:800;letter-spacing:-.03em;margin-bottom:6px;text-align:center}
+.upload-sub{color:var(--muted);font-size:13px;margin-bottom:40px;max-width:520px;line-height:1.8;text-align:center}
+
+.upload-section-lbl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;align-self:flex-start;width:100%;max-width:780px}
+.upload-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:780px;margin-bottom:10px}
+.upload-grid-1{display:grid;grid-template-columns:1fr;gap:10px;width:100%;max-width:780px;margin-bottom:28px}
+
+.uz{background:var(--bg2);border:1.5px dashed var(--border-hi);border-radius:8px;padding:20px 16px;cursor:pointer;transition:all .15s;position:relative;display:flex;align-items:center;gap:14px}
+.uz:hover{border-color:var(--accent);background:var(--bg3)}
+.uz.loaded{border-style:solid;border-color:var(--ok)}
+.uz.loaded-ra{border-style:solid;border-color:#F0BE6A}
+.uz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.uz-icon{width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:700;font-size:15px;flex-shrink:0}
+.uz-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.uz-name{font-family:var(--fd);font-weight:600;font-size:12px}
+.uz-status{font-size:10px;color:var(--muted)}
+.uz-file{font-size:10px;color:var(--ok);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px}
+.uz-file-ra{color:#F0BE6A}
+
+.btn-analyze{padding:11px 30px;background:var(--accent);border:none;border-radius:5px;color:var(--bg);font-family:var(--fm);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.btn-analyze:hover{background:#9ECFBB;transform:translateY(-1px)}
+.btn-analyze:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.upload-hint{font-size:11px;color:var(--muted);margin-top:10px}
+
+/* ── METRICS ── */
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.mc-val{font-family:var(--fd);font-size:26px;font-weight:800;line-height:1;margin-bottom:4px}
+.mc-lbl{font-size:10px;color:var(--muted);line-height:1.4}
+
+/* ── FILTER BAR ── */
+.filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.fsel{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:5px 9px;color:var(--text);font-family:var(--fm);font-size:11px;outline:none;cursor:pointer}
+.fsel:focus{border-color:var(--accent)}
+.count-lbl{margin-left:auto;font-size:11px;color:var(--muted)}
+.btn-sm{background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:var(--fm);font-size:11px;cursor:pointer;transition:all .12s}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{font-size:10px;font-weight:400;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg2);z-index:2}
+td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
+
+/* ── SEMAFORO ── */
+.sem{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500}
+.sem-ok{background:rgba(91,174,118,.14);color:#7ACD96;border:1px solid rgba(91,174,118,.25)}
+.sem-warn{background:rgba(232,162,58,.14);color:#F0BE6A;border:1px solid rgba(232,162,58,.25)}
+.sem-err{background:rgba(217,91,91,.14);color:#E88080;border:1px solid rgba(217,91,91,.25)}
+.sem-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sem-ok .sem-dot{background:#7ACD96}
+.sem-warn .sem-dot{background:#F0BE6A}
+.sem-err .sem-dot{background:#E88080}
+
+/* ── SYSTEM CELLS ── */
+.sys-cell{display:flex;align-items:center;gap:6px}
+.sys-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:18px;border-radius:3px;font-size:9px;font-weight:600}
+.sb-prm-ok{background:rgba(199,70,52,.2);color:#E8856E}
+.sb-prm-no{background:rgba(255,255,255,.04);color:var(--muted)}
+.sb-fox-ok{background:rgba(27,93,170,.2);color:#7AABDF}
+.sb-fox-no{background:rgba(255,255,255,.04);color:var(--muted)}
+.sb-snow-ok{background:rgba(129,181,161,.2);color:var(--snow)}
+.sb-snow-no{background:rgba(255,255,255,.04);color:var(--muted)}
+
+/* ── BADGE ── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap}
+.b-ok{background:rgba(91,174,118,.14);color:#7ACD96}
+.b-warn{background:rgba(232,162,58,.14);color:#F0BE6A}
+.b-err{background:rgba(217,91,91,.14);color:#E88080}
+.b-info{background:rgba(129,181,161,.1);color:var(--accent)}
+
+/* ── ALERT ── */
+.alert{display:flex;gap:10px;padding:11px 14px;border-radius:6px;margin-bottom:14px;font-size:11.5px;line-height:1.75}
+.alert-warn{background:rgba(232,162,58,.07);border:1px solid rgba(232,162,58,.2);color:#F0BE6A}
+.alert-info{background:rgba(129,181,161,.07);border:1px solid rgba(129,181,161,.2);color:var(--accent)}
+.alert-err{background:rgba(217,91,91,.07);border:1px solid rgba(217,91,91,.2);color:#E88080}
+
+/* ── CARD ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px}
+.card-title{font-family:var(--fd);font-size:13px;font-weight:600;margin-bottom:12px}
+
+/* ── DETAIL OVERLAY ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.panel{background:var(--bg2);border:1px solid var(--border-hi);border-radius:12px;width:540px;max-width:95vw;max-height:88vh;overflow-y:auto;padding:24px;position:relative}
+.panel-close{position:absolute;top:16px;right:18px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;transition:color .12s}
+.panel-close:hover{color:var(--text)}
+.panel-name{font-family:var(--fd);font-size:19px;font-weight:700;margin-bottom:3px}
+.panel-sub{font-size:11px;color:var(--muted);margin-bottom:16px}
+.panel-section{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px;padding-top:14px;border-top:1px solid var(--border)}
+.panel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pcell{background:var(--bg3);border-radius:6px;padding:10px 12px}
+.pc-sys{font-size:9px;color:var(--muted);margin-bottom:6px;letter-spacing:.05em}
+.pc-status{font-size:13px;font-weight:500;margin-bottom:4px}
+.pc-detail{font-size:10px;color:var(--muted);line-height:1.6}
+.kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kv{display:flex;flex-direction:column;gap:2px}
+.kv-k{font-size:9px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.kv-v{font-size:12px}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-title">Check Inserimenti</div>
+    <div class="sb-sub">Verifica propagazione nuove utenze</div>
+    <span class="sb-tag">Regional Assistant</span>
+  </div>
+
+  <div class="sb-section">Viste</div>
+  <button class="sb-btn active" onclick="nav('upload')" id="nav-upload">
+    <span>↑</span> Carica file
+  </button>
+  <button class="sb-btn" onclick="nav('results')" id="nav-results">
+    <span>⊟</span> Risultati check
+    <span class="sb-count" id="cnt-total">–</span>
+  </button>
+  <button class="sb-btn" onclick="nav('ko')" id="nav-ko">
+    <span>⚠</span> Non propagati
+    <span class="sb-count err" id="cnt-ko">–</span>
+  </button>
+  <button class="sb-btn" onclick="nav('partial')" id="nav-partial">
+    <span>◑</span> Parziali
+    <span class="sb-count warn" id="cnt-partial">–</span>
+  </button>
+  <button class="sb-btn" onclick="nav('ok')" id="nav-ok">
+    <span>✓</span> Completi
+    <span class="sb-count ok" id="cnt-ok">–</span>
+  </button>
+
+  <div class="sb-files" id="sb-files" style="display:none">
+    <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">File caricati</div>
+    <div class="sb-file-row">
+      <span class="sb-file-lbl"><span class="sb-file-dot" id="dot-ra"></span>RA inserimenti</span>
+      <span class="sb-file-val" id="cnt-ra-rows">–</span>
+    </div>
+    <div class="sb-file-row">
+      <span class="sb-file-lbl"><span class="sb-file-dot" id="dot-prm"></span>Oracle PRM</span>
+      <span class="sb-file-val" id="cnt-prm-rows">–</span>
+    </div>
+    <div class="sb-file-row">
+      <span class="sb-file-lbl"><span class="sb-file-dot" id="dot-fox"></span>FOX</span>
+      <span class="sb-file-val" id="cnt-fox-rows">–</span>
+    </div>
+    <div class="sb-file-row">
+      <span class="sb-file-lbl"><span class="sb-file-dot" id="dot-snow"></span>ServiceNow</span>
+      <span class="sb-file-val" id="cnt-snow-rows">–</span>
+    </div>
+    <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:8px">
+      <button onclick="nav('upload')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:var(--fm);font-size:10px;cursor:pointer;width:100%;transition:all .12s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↺ Ricarica file</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="dashboard.html" class="back-link">← Dashboard</a>
+      <div class="topbar-title" id="page-title">Carica i file</div>
+    </div>
+    <div class="search-wrap" id="search-wrap" style="display:none">
+      <span style="color:var(--muted);font-size:13px">⌕</span>
+      <input type="text" id="globalSearch" placeholder="Cerca nome, email, RA…" oninput="applyFilters()">
+    </div>
+  </div>
+
+  <!-- ══ UPLOAD ══ -->
+  <div class="view active" id="view-upload">
+    <div class="upload-screen">
+      <div class="upload-title">Check Nuovi Inserimenti</div>
+      <div class="upload-sub">Carica il file delle Regional Assistant e i 3 export di sistema per verificare se le nuove utenze si sono propagate correttamente.</div>
+
+      <!-- RA FILE -->
+      <div class="upload-section-lbl" style="color:#F0BE6A">① File Regional Assistant</div>
+      <div class="upload-grid-1">
+        <div class="uz" id="zone-ra">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('ra',this)">
+          <div class="uz-icon" style="background:rgba(232,162,58,.12);color:#F0BE6A;border:1px solid rgba(232,162,58,.25)">RA</div>
+          <div class="uz-text">
+            <div class="uz-name">Inserimenti Regional Assistant</div>
+            <div class="uz-status" id="st-ra">Carica il file Excel compilato dalle RA</div>
+            <div class="uz-file uz-file-ra" id="fn-ra"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SYSTEM FILES -->
+      <div class="upload-section-lbl">② Export dei 3 sistemi (stessi file della dashboard principale)</div>
+      <div class="upload-grid-3">
+        <div class="uz" id="zone-prm">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('prm',this)">
+          <div class="uz-icon" style="background:rgba(199,70,52,.14);color:#E8856E;border:1px solid rgba(199,70,52,.25)">O</div>
+          <div class="uz-text">
+            <div class="uz-name">Oracle PRM</div>
+            <div class="uz-status" id="st-prm">PRM Person Masterdata</div>
+            <div class="uz-file" id="fn-prm"></div>
+          </div>
+        </div>
+        <div class="uz" id="zone-fox">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('fox',this)">
+          <div class="uz-icon" style="background:rgba(27,93,170,.14);color:#7AABDF;border:1px solid rgba(27,93,170,.25)">F</div>
+          <div class="uz-text">
+            <div class="uz-name">FOX</div>
+            <div class="uz-status" id="st-fox">US_B_USER export</div>
+            <div class="uz-file" id="fn-fox"></div>
+          </div>
+        </div>
+        <div class="uz" id="zone-snow">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('snow',this)">
+          <div class="uz-icon" style="background:rgba(129,181,161,.12);color:var(--snow);border:1px solid rgba(129,181,161,.25)">S</div>
+          <div class="uz-text">
+            <div class="uz-name">ServiceNow</div>
+            <div class="uz-status" id="st-snow">sys_user export IT</div>
+            <div class="uz-file" id="fn-snow"></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-analyze" id="btn-analyze" disabled onclick="runCheck()">▶ Avvia check</button>
+      <div class="upload-hint">I dati vengono elaborati interamente nel browser — nessun file viene caricato su server</div>
+    </div>
+  </div>
+
+  <!-- ══ RESULTS ══ -->
+  <div class="view" id="view-results">
+    <div class="metrics">
+      <div class="mc">
+        <div class="mc-val" id="m-total">–</div>
+        <div class="mc-lbl">Utenti nel file RA</div>
+      </div>
+      <div class="mc">
+        <div class="mc-val" style="color:#7ACD96" id="m-ok">–</div>
+        <div class="mc-lbl">Propagati correttamente<br>in tutti e 3</div>
+      </div>
+      <div class="mc">
+        <div class="mc-val" style="color:#F0BE6A" id="m-partial">–</div>
+        <div class="mc-lbl">Parziali<br>(1 o 2 sistemi)</div>
+      </div>
+      <div class="mc">
+        <div class="mc-val" style="color:#E88080" id="m-ko">–</div>
+        <div class="mc-lbl">Non trovati<br>in nessun sistema</div>
+      </div>
+      <div class="mc">
+        <div class="mc-val" style="color:var(--muted)" id="m-noprm">–</div>
+        <div class="mc-lbl">Non in Oracle PRM<br>(sorgente)</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <select class="fsel" id="f-status" onchange="applyFilters()">
+        <option value="">Tutti i risultati</option>
+        <option value="ok">✓ Completi (tutti e 3)</option>
+        <option value="partial">◑ Parziali</option>
+        <option value="ko">✗ Non trovati</option>
+      </select>
+      <select class="fsel" id="f-sys" onchange="applyFilters()">
+        <option value="">Qualsiasi sistema</option>
+        <option value="noprm">Mancante in Oracle</option>
+        <option value="nofox">Mancante in FOX</option>
+        <option value="nosnow">Mancante in Snow</option>
+      </select>
+      <select class="fsel" id="f-ra" onchange="applyFilters()">
+        <option value="">Tutte le RA</option>
+      </select>
+      <button class="btn-sm" onclick="resetFilters()">✕ Reset</button>
+      <span class="count-lbl" id="match-count">– utenti</span>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="tbl-wrap" style="max-height:calc(100vh - 260px)">
+        <table>
+          <thead><tr>
+            <th>#</th>
+            <th>Cognome Nome</th>
+            <th>Email / Match</th>
+            <th>Data attivazione</th>
+            <th style="text-align:center">Oracle PRM</th>
+            <th style="text-align:center">FOX</th>
+            <th style="text-align:center">ServiceNow</th>
+            <th>Stato propagazione</th>
+            <th>Inserito da (RA)</th>
+          </tr></thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ KO ══ -->
+  <div class="view" id="view-ko">
+    <div class="alert alert-err">
+      <span style="font-size:15px;flex-shrink:0">✗</span>
+      <div>Utenti presenti nel file RA ma <strong>non trovati in nessuno</strong> dei 3 sistemi. Verificare se l'inserimento è avvenuto correttamente o se c'è un problema di matching (email diversa, nome scritto diversamente).</div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Cognome Nome</th>
+            <th>Data attivazione</th>
+            <th>Shop</th>
+            <th>Employee/ATG</th>
+            <th>Inserito da (RA)</th>
+            <th>Data inserimento Oracle</th>
+          </tr></thead>
+          <tbody id="ko-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ PARTIAL ══ -->
+  <div class="view" id="view-partial">
+    <div class="alert alert-warn">
+      <span style="font-size:15px;flex-shrink:0">◑</span>
+      <div>Utenti trovati in almeno un sistema ma <strong>non propagati completamente</strong>. Il flusso prevede: Oracle PRM → ServiceNow (21:00) → FOX (16:30). Verificare in quale step si è bloccato.</div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Cognome Nome</th>
+            <th>Email</th>
+            <th style="text-align:center">Oracle PRM</th>
+            <th style="text-align:center">FOX</th>
+            <th style="text-align:center">ServiceNow</th>
+            <th>Gap rilevato</th>
+            <th>Data attivazione</th>
+            <th>Inserito da (RA)</th>
+          </tr></thead>
+          <tbody id="partial-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ OK ══ -->
+  <div class="view" id="view-ok">
+    <div class="alert alert-info">
+      <span style="font-size:15px;flex-shrink:0">✓</span>
+      <div>Utenti correttamente propagati in tutti e 3 i sistemi — Oracle PRM, FOX e ServiceNow.</div>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Cognome Nome</th>
+            <th>Email</th>
+            <th>AD domain</th>
+            <th>Oracle PRM</th>
+            <th>FOX</th>
+            <th>ServiceNow</th>
+            <th>Data attivazione</th>
+            <th>Inserito da (RA)</th>
+          </tr></thead>
+          <tbody id="ok-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<!-- DETAIL OVERLAY -->
+<div class="overlay" id="overlay" onclick="closeOverlay(event)">
+  <div class="panel" id="panel">
+    <button class="panel-close" onclick="closePanel()">✕</button>
+    <div class="panel-name" id="p-name"></div>
+    <div class="panel-sub" id="p-sub"></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap" id="p-badges"></div>
+
+    <div class="panel-section">Propagazione nei sistemi</div>
+    <div class="panel-grid" id="p-grid"></div>
+
+    <div class="panel-section">Dati dal file RA</div>
+    <div class="kv-grid" id="p-ra"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const RAW = { ra: null, prm: null, fox: null, snow: null };
+let RESULTS = [];
+
+// ═══════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════
+function nav(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
+  const titles = {
+    upload: 'Carica i file',
+    results: 'Risultati check',
+    ko: 'Non propagati',
+    partial: 'Parziali',
+    ok: 'Completi'
+  };
+  document.getElementById('page-title').textContent = titles[id] || id;
+  document.getElementById('search-wrap').style.display = (id === 'results') ? 'flex' : 'none';
+  if (id === 'results') applyFilters();
+}
+
+// ═══════════════════════════════════════════
+// FILE LOADING
+// ═══════════════════════════════════════════
+function loadFile(sys, input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('st-' + sys).textContent = 'Caricamento…';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      RAW[sys] = rows;
+      const lbl = rows.length + ' righe';
+      document.getElementById('st-' + sys).textContent = lbl;
+      document.getElementById('fn-' + sys).textContent = file.name;
+      document.getElementById('zone-' + sys).classList.add(sys === 'ra' ? 'loaded-ra' : 'loaded');
+      checkReady();
+    } catch(err) {
+      document.getElementById('st-' + sys).textContent = 'Errore lettura';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function checkReady() {
+  const ok = RAW.ra && RAW.prm && RAW.fox && RAW.snow;
+  document.getElementById('btn-analyze').disabled = !ok;
+}
+
+// ═══════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════
+
+// Normalizza una stringa per il confronto: lowercase, no accenti, no spazi, no caratteri speciali
+function norm(s) {
+  return String(s || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+// Trova una colonna per nome esatto (case-insensitive, trim)
+function findCol(headers, ...names) {
+  for (const h of headers) {
+    const hn = h.toLowerCase().trim();
+    for (const n of names) {
+      if (hn === n.toLowerCase().trim()) return h;
+    }
+  }
+  // fallback: startsWith
+  for (const h of headers) {
+    const hn = h.toLowerCase().trim();
+    for (const n of names) {
+      if (hn.startsWith(n.toLowerCase().trim())) return h;
+    }
+  }
+  return null;
+}
+
+function colVal(row, col) {
+  if (!col) return '';
+  const v = row[col];
+  if (v instanceof Date) return v.toLocaleDateString('it-IT');
+  return String(v || '').trim();
+}
+
+function normUser(s) {
+  s = String(s || '').replace(/\\\\/g, '\\');
+  return s.includes('\\') ? s.split('\\').pop().toLowerCase().trim() : s.toLowerCase().trim();
+}
+
+// ═══════════════════════════════════════════
+// CHIAVE DI MATCHING: cognome + nome normalizzati
+//
+// RA      → col "cognome" (A) + col "nome" (B)   → key = norm(cognome)+norm(nome)
+// Oracle  → "LAST NAME" + "FIRST NAME"            → key = norm(LAST)+norm(FIRST)
+// FOX     → "USER_DESCR" formato "Nome Cognome"   → ultima parola=cognome, resto=nome
+//           es. "Grazia Rita Andolina" → cognome=andolina, nome=graziarita
+// Snow    → "Name" formato "Nome Cognome"          → stessa logica di FOX
+// ═══════════════════════════════════════════
+
+// Costruisce la chiave da un nome completo in formato "Nome [Secondo] Cognome"
+// (ultima parola = cognome, tutto il resto = nome)
+function keyFromFull(fullname) {
+  const parts = norm(fullname).split('').join('') !== ''
+    ? String(fullname).trim().split(/\s+/)
+    : [];
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return norm(parts[0]);
+  const cognome = parts[parts.length - 1];
+  const nome    = parts.slice(0, parts.length - 1).join('');
+  return norm(cognome) + norm(nome);
+}
+
+// Costruisce la chiave da cognome e nome separati
+function keyFromParts(cognome, nome) {
+  return norm(cognome) + norm(nome);
+}
+
+// ═══════════════════════════════════════════
+// MATCHING LOGIC
+// ═══════════════════════════════════════════
+function runCheck() {
+  const raH   = Object.keys(RAW.ra[0]   || {});
+  const prmH  = Object.keys(RAW.prm[0]  || {});
+  const foxH  = Object.keys(RAW.fox[0]  || {});
+  const snowH = Object.keys(RAW.snow[0] || {});
+
+  // ── Colonne Oracle PRM ──
+  const prmColLast   = findCol(prmH, 'LAST NAME', 'last name', 'lastname', 'cognome');
+  const prmColFirst  = findCol(prmH, 'FIRST NAME', 'first name', 'firstname', 'nome');
+  const prmColEmail  = findCol(prmH, 'AMPLIFON EMAIL', 'email', 'mail');
+  const prmColAD     = findCol(prmH, 'AD DOMAIN', 'ad domain', 'ad_domain');
+  const prmColStatus = findCol(prmH, 'ASSIGNMENT STATUS', 'status');
+  const prmColJob    = findCol(prmH, 'JOB TITLE', 'job title');
+  const prmColArea   = findCol(prmH, 'AREA DESCRIPTION', 'area description');
+  const prmColShop   = findCol(prmH, 'SHOP DESCRIPTION', 'shop description');
+
+  // ── Colonne FOX ──
+  const foxColFull   = findCol(foxH, 'USER_DESCR', 'user_descr');
+  const foxColEmail  = findCol(foxH, 'EMAIL', 'email');
+  const foxColAD     = findCol(foxH, 'USER_NAME', 'user_name', 'username');
+  const foxColStatus = findCol(foxH, 'STATUS_CODE', 'status_code', 'status');
+
+  // ── Colonne Snow ──
+  const snowColFull   = findCol(snowH, 'Name', 'name', 'full_name');
+  const snowColEmail  = findCol(snowH, 'User ID', 'user id', 'userid', 'email');
+  const snowColAD     = findCol(snowH, 'AD Doman', 'ad doman', 'ad domain', 'UAD', 'uad');
+  const snowColStatus = findCol(snowH, 'Active', 'active', 'status');
+  const snowColJob    = findCol(snowH, 'Structure code (IT)', 'structure code (it)');
+
+  // ── Colonne RA ──
+  const raColLast    = findCol(raH, 'cognome');
+  const raColFirst   = findCol(raH, 'nome');
+  const raColDate    = findCol(raH, 'Data attivazione', 'data attivazione');
+  const raColShop    = findCol(raH, 'Codice negozio/negozi assegnati', 'shop code', 'shop');
+  const raColJob     = findCol(raH, 'Employee/ATG', 'employee/atg');
+  const raColPartner = findCol(raH, 'Partner Name', 'partner name');
+  const raColRA      = findCol(raH, 'Inserito da', 'inserito da');
+  const raColDateIns = findCol(raH, 'Data inserimento/modifica in Orac', 'data inserimento');
+
+  // ── Indici Oracle: byKey (cognome+nome) ──
+  const prmByKey = {};
+  RAW.prm.forEach(r => {
+    const k = keyFromParts(colVal(r, prmColLast), colVal(r, prmColFirst));
+    if (k) prmByKey[k] = r;
+  });
+
+  // ── Indici FOX: byKey (ultima parola = cognome) ──
+  const foxByKey = {};
+  RAW.fox.forEach(r => {
+    const k = keyFromFull(colVal(r, foxColFull));
+    if (k) foxByKey[k] = r;
+  });
+
+  // ── Indici Snow: byKey (ultima parola = cognome) ──
+  const snowByKey = {};
+  RAW.snow.forEach(r => {
+    const k = keyFromFull(colVal(r, snowColFull));
+    if (k) snowByKey[k] = r;
+  });
+
+  // ── Deduplica RA: una riga per persona (cognome+nome) ──
+  const raDedup = {};
+  RAW.ra.forEach(r => {
+    const ln = colVal(r, raColLast);
+    const fn = colVal(r, raColFirst);
+    if (!ln && !fn) return;
+    const k = keyFromParts(ln, fn);
+    if (k) raDedup[k] = r; // ultima occorrenza vince
+  });
+  const raRows = Object.values(raDedup);
+
+  // ── Popola filtro RA ──
+  const raNames = [...new Set(RAW.ra.map(r => colVal(r, raColRA)).filter(Boolean))].sort();
+  const raSel = document.getElementById('f-ra');
+  raSel.innerHTML = '<option value="">Tutte le RA</option>';
+  raNames.forEach(n => raSel.innerHTML += `<option value="${esc(n)}">${n}</option>`);
+
+  // ── Costruisci risultati ──
+  RESULTS = raRows.map((r, i) => {
+    const ln      = colVal(r, raColLast);
+    const fn      = colVal(r, raColFirst);
+    const name    = (ln + ' ' + fn).trim();
+    const nameKey = keyFromParts(ln, fn);
+
+    const prmRow  = prmByKey[nameKey]  || null;
+    const foxRow  = foxByKey[nameKey]  || null;
+    const snowRow = snowByKey[nameKey] || null;
+
+    const in_prm  = !!prmRow;
+    const in_fox  = !!foxRow;
+    const in_snow = !!snowRow;
+    const sys_count = [in_prm, in_fox, in_snow].filter(Boolean).length;
+
+    // Email: prendi dal sistema dove la troviamo
+    const email =
+      (prmRow  ? colVal(prmRow,  prmColEmail)  : '') ||
+      (snowRow ? colVal(snowRow, snowColEmail) : '') ||
+      (foxRow  ? colVal(foxRow,  foxColEmail)  : '');
+
+    // AD domain
+    const ad_prm  = prmRow  ? normUser(colVal(prmRow,  prmColAD))  : '';
+    const ad_fox  = foxRow  ? normUser(colVal(foxRow,  foxColAD))  : '';
+    const ad_snow = snowRow ? normUser(colVal(snowRow, snowColAD)) : '';
+    const ad      = ad_prm || ad_fox || ad_snow;
+
+    const status = sys_count === 3 ? 'ok' : sys_count === 0 ? 'ko' : 'partial';
+
+    let gap = '';
+    if (status === 'partial') {
+      const missing = [];
+      if (!in_prm)  missing.push('Oracle PRM');
+      if (!in_snow) missing.push('ServiceNow');
+      if (!in_fox)  missing.push('FOX');
+      gap = 'Manca in: ' + missing.join(', ');
+    }
+
+    return {
+      idx: i + 1, name, ln, fn, nameKey, email, ad,
+      in_prm, in_fox, in_snow, sys_count, status, gap,
+      date_act:  colVal(r, raColDate),
+      date_ins:  colVal(r, raColDateIns),
+      shop:      colVal(r, raColShop),
+      job_type:  colVal(r, raColJob),
+      partner:   colVal(r, raColPartner),
+      ra_name:   colVal(r, raColRA),
+      status_prm:  prmRow  ? colVal(prmRow,  prmColStatus)  : '',
+      status_fox:  foxRow  ? colVal(foxRow,  foxColStatus)  : '',
+      status_snow: snowRow ? colVal(snowRow, snowColStatus) : '',
+      ad_prm, ad_fox, ad_snow,
+      job_prm:  prmRow  ? colVal(prmRow,  prmColJob)  : (snowRow ? colVal(snowRow, snowColJob) : ''),
+      area_prm: prmRow  ? colVal(prmRow,  prmColArea) || colVal(prmRow, prmColShop) : '',
+    };
+  });
+
+  // Update counters
+  const total   = RESULTS.length;
+  const okCnt   = RESULTS.filter(r => r.status === 'ok').length;
+  const partial = RESULTS.filter(r => r.status === 'partial').length;
+  const ko      = RESULTS.filter(r => r.status === 'ko').length;
+  const noprm   = RESULTS.filter(r => !r.in_prm).length;
+
+  document.getElementById('m-total').textContent   = total;
+  document.getElementById('m-ok').textContent      = okCnt;
+  document.getElementById('m-partial').textContent = partial;
+  document.getElementById('m-ko').textContent      = ko;
+  document.getElementById('m-noprm').textContent   = noprm;
+  document.getElementById('cnt-total').textContent   = total;
+  document.getElementById('cnt-ok').textContent      = okCnt;
+  document.getElementById('cnt-partial').textContent = partial;
+  document.getElementById('cnt-ko').textContent      = ko;
+
+  // Sidebar file counts
+  document.getElementById('cnt-ra-rows').textContent   = RAW.ra.length;
+  document.getElementById('cnt-prm-rows').textContent  = RAW.prm.length;
+  document.getElementById('cnt-fox-rows').textContent  = RAW.fox.length;
+  document.getElementById('cnt-snow-rows').textContent = RAW.snow.length;
+  ['ra','prm','fox','snow'].forEach(s => {
+    document.getElementById('dot-' + s).classList.add('loaded');
+  });
+  document.getElementById('sb-files').style.display = 'block';
+
+  renderResultsTable(RESULTS);
+  renderKoTable();
+  renderPartialTable();
+  renderOkTable();
+
+  nav('results');
+}
+
+// ═══════════════════════════════════════════
+// RENDER TABLES
+// ═══════════════════════════════════════════
+function semHtml(r) {
+  if (r.status === 'ok')      return `<span class="sem sem-ok"><span class="sem-dot"></span>Completo</span>`;
+  if (r.status === 'ko')      return `<span class="sem sem-err"><span class="sem-dot"></span>Non trovato</span>`;
+  return `<span class="sem sem-warn"><span class="sem-dot"></span>Parziale</span>`;
+}
+
+function sysCell(ok, label, okCls, noCls) {
+  return `<span class="sys-badge ${ok ? okCls : noCls}">${ok ? '✓' : '–'}</span>`;
+}
+
+function renderResultsTable(rows) {
+  document.getElementById('match-count').textContent = rows.length + ' utenti';
+  const tbody = document.getElementById('results-body');
+  tbody.innerHTML = rows.map(r => `
+    <tr onclick="openDetail('${esc(r.nameKey)}')"
+        data-status="${r.status}"
+        data-noprm="${!r.in_prm?'1':'0'}"
+        data-nofox="${!r.in_fox?'1':'0'}"
+        data-nosnow="${!r.in_snow?'1':'0'}"
+        data-ra="${esc(r.ra_name)}"
+        data-search="${(r.name+' '+r.email+' '+r.ra_name).toLowerCase()}">
+      <td style="color:var(--muted)">${r.idx}</td>
+      <td style="font-weight:500">${r.name}</td>
+      <td style="color:var(--muted);max-width:180px;overflow:hidden;text-overflow:ellipsis">${r.email||'–'}</td>
+      <td style="color:var(--muted)">${r.date_act||'–'}</td>
+      <td style="text-align:center">${sysCell(r.in_prm,'O','sb-prm-ok','sb-prm-no')}</td>
+      <td style="text-align:center">${sysCell(r.in_fox,'F','sb-fox-ok','sb-fox-no')}</td>
+      <td style="text-align:center">${sysCell(r.in_snow,'S','sb-snow-ok','sb-snow-no')}</td>
+      <td>${semHtml(r)}</td>
+      <td style="color:var(--muted);font-size:11px">${r.ra_name||'–'}</td>
+    </tr>`).join('');
+}
+
+function renderKoTable() {
+  const rows = RESULTS.filter(r => r.status === 'ko');
+  document.getElementById('ko-body').innerHTML = rows.length
+    ? rows.map(r => `<tr onclick="openDetail('${esc(r.nameKey)}')">
+        <td style="font-weight:500">${r.name}</td>
+        <td style="color:var(--muted)">${r.date_act||'–'}</td>
+        <td style="color:var(--muted);font-size:11px">${r.shop||'–'}</td>
+        <td><span class="badge b-info">${r.job_type||'–'}</span></td>
+        <td style="color:var(--muted)">${r.ra_name||'–'}</td>
+        <td style="color:var(--muted)">${r.date_ins||'–'}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">✓ Nessun utente completamente non trovato</td></tr>`;
+}
+
+function renderPartialTable() {
+  const rows = RESULTS.filter(r => r.status === 'partial');
+  document.getElementById('partial-body').innerHTML = rows.length
+    ? rows.map(r => `<tr onclick="openDetail('${esc(r.nameKey)}')">
+        <td style="font-weight:500">${r.name}</td>
+        <td style="color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.email||'–'}</td>
+        <td style="text-align:center">${sysCell(r.in_prm,'O','sb-prm-ok','sb-prm-no')}</td>
+        <td style="text-align:center">${sysCell(r.in_fox,'F','sb-fox-ok','sb-fox-no')}</td>
+        <td style="text-align:center">${sysCell(r.in_snow,'S','sb-snow-ok','sb-snow-no')}</td>
+        <td style="color:#F0BE6A;font-size:11px">${r.gap}</td>
+        <td style="color:var(--muted)">${r.date_act||'–'}</td>
+        <td style="color:var(--muted)">${r.ra_name||'–'}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">✓ Nessun utente parziale</td></tr>`;
+}
+
+function renderOkTable() {
+  const rows = RESULTS.filter(r => r.status === 'ok');
+  document.getElementById('ok-body').innerHTML = rows.length
+    ? rows.map(r => `<tr onclick="openDetail('${esc(r.nameKey)}')">
+        <td style="font-weight:500">${r.name}</td>
+        <td style="color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.email||'–'}</td>
+        <td><code style="font-size:10px;color:var(--accent)">${r.ad||'–'}</code></td>
+        <td><span class="badge b-ok">${r.status_prm||'ACTIVE'}</span></td>
+        <td><span class="badge b-ok">${r.status_fox||'ATT'}</span></td>
+        <td><span class="badge b-ok">${r.status_snow||'True'}</span></td>
+        <td style="color:var(--muted)">${r.date_act||'–'}</td>
+        <td style="color:var(--muted)">${r.ra_name||'–'}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">Nessun utente completamente propagato</td></tr>`;
+}
+
+// ═══════════════════════════════════════════
+// FILTERS
+// ═══════════════════════════════════════════
+function applyFilters() {
+  const q   = (document.getElementById('globalSearch')?.value || '').toLowerCase();
+  const st  = document.getElementById('f-status')?.value || '';
+  const sys = document.getElementById('f-sys')?.value || '';
+  const ra  = document.getElementById('f-ra')?.value || '';
+
+  const rows = document.querySelectorAll('#results-body tr');
+  let visible = 0;
+  rows.forEach(tr => {
+    const matchQ  = !q  || (tr.dataset.search || '').includes(q);
+    const matchSt = !st || tr.dataset.status === st;
+    const matchSys = !sys || tr.dataset[sys] === '1';
+    const matchRa = !ra || tr.dataset.ra === ra;
+    const show = matchQ && matchSt && matchSys && matchRa;
+    tr.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('match-count').textContent = visible + ' utenti';
+}
+
+function resetFilters() {
+  ['f-status','f-sys','f-ra'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('globalSearch').value = '';
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════
+// DETAIL PANEL
+// ═══════════════════════════════════════════
+function openDetail(nameKey) {
+  const r = RESULTS.find(d => d.nameKey === nameKey);
+  if (!r) return;
+
+  document.getElementById('p-name').textContent = r.name;
+  document.getElementById('p-sub').textContent  = r.email || 'Email non disponibile nel file RA';
+
+  const badges = document.getElementById('p-badges');
+  badges.innerHTML = semHtml(r);
+  if (r.in_prm)  badges.innerHTML += ` <span class="badge" style="background:rgba(199,70,52,.12);color:#E8856E">Oracle PRM</span>`;
+  if (r.in_fox)  badges.innerHTML += ` <span class="badge" style="background:rgba(27,93,170,.12);color:#7AABDF">FOX</span>`;
+  if (r.in_snow) badges.innerHTML += ` <span class="badge" style="background:rgba(129,181,161,.12);color:var(--snow)">ServiceNow</span>`;
+
+  document.getElementById('p-grid').innerHTML = `
+    <div class="pcell">
+      <div class="pc-sys">Oracle PRM</div>
+      <div class="pc-status" style="color:${r.in_prm?'#7ACD96':'#E88080'}">${r.in_prm?'✓ Trovato':'✗ Non trovato'}</div>
+      ${r.ad_prm    ? `<div class="pc-detail">AD: ${r.ad_prm}</div>` : ''}
+      ${r.status_prm? `<div class="pc-detail">Status: ${r.status_prm}</div>` : ''}
+      ${r.job_prm   ? `<div class="pc-detail">${r.job_prm}</div>` : ''}
+    </div>
+    <div class="pcell">
+      <div class="pc-sys">FOX</div>
+      <div class="pc-status" style="color:${r.in_fox?'#7ACD96':'#E88080'}">${r.in_fox?'✓ Trovato':'✗ Non trovato'}</div>
+      ${r.ad_fox    ? `<div class="pc-detail">AD: ${r.ad_fox}</div>` : ''}
+      ${r.status_fox? `<div class="pc-detail">Status: ${r.status_fox}</div>` : ''}
+    </div>
+    <div class="pcell">
+      <div class="pc-sys">ServiceNow</div>
+      <div class="pc-status" style="color:${r.in_snow?'#7ACD96':'#E88080'}">${r.in_snow?'✓ Trovato':'✗ Non trovato'}</div>
+      ${r.ad_snow    ? `<div class="pc-detail">AD: ${r.ad_snow}</div>` : ''}
+      ${r.status_snow? `<div class="pc-detail">Attivo: ${r.status_snow}</div>` : ''}
+    </div>`;
+
+  document.getElementById('p-ra').innerHTML = `
+    ${r.date_act ? `<div class="kv"><div class="kv-k">Data attivazione</div><div class="kv-v">${r.date_act}</div></div>` : ''}
+    ${r.date_ins ? `<div class="kv"><div class="kv-k">Data inserimento Oracle</div><div class="kv-v">${r.date_ins}</div></div>` : ''}
+    ${r.ra_name  ? `<div class="kv"><div class="kv-k">Inserito da (RA)</div><div class="kv-v">${r.ra_name}</div></div>` : ''}
+    ${r.shop     ? `<div class="kv"><div class="kv-k">Shop</div><div class="kv-v" style="font-size:11px">${r.shop}</div></div>` : ''}
+    ${r.job_type ? `<div class="kv"><div class="kv-k">Employee/ATG</div><div class="kv-v">${r.job_type}</div></div>` : ''}
+    ${r.partner  ? `<div class="kv"><div class="kv-k">Partner Name</div><div class="kv-v">${r.partner}</div></div>` : ''}`;
+
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeOverlay(e) {
+  if (e.target === document.getElementById('overlay')) closePanel();
+}
+function closePanel() {
+  document.getElementById('overlay').classList.remove('open');
+}
+function esc(s) { return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
