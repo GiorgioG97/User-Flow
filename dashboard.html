@@ -565,7 +565,7 @@ function runAnalysis() {
   const foxH = Object.keys(RAW.fox[0] || {});
   const snwH = Object.keys(RAW.snow[0] || {});
 
-  // build email index
+  // build email index (FOX e Snow: ultima riga vince)
   function idx(rows, headers, emailKey) {
     const map = {};
     rows.forEach(r => {
@@ -575,7 +575,28 @@ function runAnalysis() {
     return map;
   }
 
-  const prmIdx = idx(RAW.prm, prmH, 'email');
+  // Oracle PRM: indice con priorità ACTIVE (col ASSIGNMENT STATUS).
+  // Una persona è "presente" solo se ha almeno una riga ACTIVE.
+  // Se ha più righe, teniamo quella ACTIVE con PRIMARY ASSIGNMENT=Y,
+  // altrimenti la prima ACTIVE trovata.
+  // Tutte INACTIVE → non presente (non entra nell'indice).
+  const prmColStatus  = getCol(prmH, 'status');
+  const prmColPrimary = getCol(prmH, 'primary');
+  const prmAllRows = {};
+  RAW.prm.forEach(r => {
+    const e = normEmail(getVal(r, prmH, 'email'));
+    if (!e) return;
+    if (!prmAllRows[e]) prmAllRows[e] = [];
+    prmAllRows[e].push(r);
+  });
+  const prmIdx = {};
+  for (const [e, rows] of Object.entries(prmAllRows)) {
+    const activeRows = rows.filter(r => String(r[prmColStatus] || '').trim().toUpperCase() === 'ACTIVE');
+    if (activeRows.length === 0) continue; // tutte INACTIVE → non presente
+    const primary = activeRows.find(r => String(r[prmColPrimary] || '').trim() === 'Y');
+    prmIdx[e] = primary || activeRows[0];
+  }
+
   const foxIdx = idx(RAW.fox, foxH, 'email');
   const snwIdx = idx(RAW.snow, snwH, 'email');
 
