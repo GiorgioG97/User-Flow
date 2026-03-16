@@ -52,6 +52,8 @@ h1 em{font-style:normal;color:transparent;-webkit-text-stroke:1px rgba(129,181,1
 .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:4px;font-family:var(--font-m);font-size:12px;font-weight:500;text-decoration:none;transition:all .15s;letter-spacing:.03em;border:none;cursor:pointer}
 .btn-p{background:var(--accent);color:var(--bg)}
 .btn-p:hover{background:#9ECFBB;transform:translateY(-1px)}
+.btn-check{background:rgba(232,162,58,.12);color:#F0BE6A;border:1px solid rgba(232,162,58,.3)}
+.btn-check:hover{background:rgba(232,162,58,.2);border-color:#F0BE6A;transform:translateY(-1px)}
 .btn-g{background:transparent;color:var(--text);border:1px solid var(--border-hi)}
 .btn-g:hover{border-color:var(--accent);color:var(--accent)}
 @keyframes up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
@@ -155,8 +157,8 @@ footer{border-top:1px solid var(--border);padding:36px 0}
       <ul class="nav-links">
         <li><a href="#exports">Export</a></li>
         <li><a href="#features">Flusso</a></li>
-        <li><a href="#sheets">Google Sheets</a></li>
-        <li><a href="#fields">Campi</a></li>
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="check-inserimenti.html" style="color:#F0BE6A">Check RA ↗</a></li>
         <li><a href="https://github.com" target="_blank">GitHub ↗</a></li>
       </ul>
     </div>
@@ -171,8 +173,8 @@ footer{border-top:1px solid var(--border);padding:36px 0}
     <p class="sub">Confronta le utenze di Oracle HCM, FOX e ServiceNow in un'unica vista. Individua utenti orfani, mancanti e conflitti di dati chiave — basato sul flusso ufficiale HCM → PRM → Snow → AD → O365 → FOX.</p>
     <div class="actions">
       <a href="dashboard.html" class="btn btn-p">▶&nbsp; Apri Dashboard</a>
+      <a href="check-inserimenti.html" class="btn btn-check">⊕&nbsp; Check Nuovi Inserimenti</a>
       <a href="https://github.com" class="btn btn-g" target="_blank">Repository GitHub →</a>
-      <a href="#sheets" class="btn btn-g">Collegare Google Sheets</a>
     </div>
 
     <div class="sysbar">
