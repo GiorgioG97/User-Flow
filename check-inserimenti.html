@@ -366,6 +366,12 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
       <span style="font-size:15px;flex-shrink:0">✗</span>
       <div>Utenti presenti nel file RA ma <strong>non trovati in nessuno</strong> dei 3 sistemi. Verificare se l'inserimento è avvenuto correttamente o se c'è un problema di matching (email diversa, nome scritto diversamente).</div>
     </div>
+    <div class="filter-bar">
+      <select class="fsel" id="f-ra-ko" onchange="filterSubView('ko-body','f-ra-ko','ko-count')">
+        <option value="">Tutte le RA</option>
+      </select>
+      <span class="count-lbl" id="ko-count">– utenti</span>
+    </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="tbl-wrap">
         <table>
@@ -388,6 +394,12 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
     <div class="alert alert-warn">
       <span style="font-size:15px;flex-shrink:0">◑</span>
       <div>Utenti trovati in almeno un sistema ma <strong>non propagati completamente</strong>. Il flusso prevede: Oracle PRM → ServiceNow (21:00) → FOX (16:30). Verificare in quale step si è bloccato.</div>
+    </div>
+    <div class="filter-bar">
+      <select class="fsel" id="f-ra-partial" onchange="filterSubView('partial-body','f-ra-partial','partial-count')">
+        <option value="">Tutte le RA</option>
+      </select>
+      <span class="count-lbl" id="partial-count">– utenti</span>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="tbl-wrap">
@@ -413,6 +425,12 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
     <div class="alert alert-info">
       <span style="font-size:15px;flex-shrink:0">✓</span>
       <div>Utenti correttamente propagati in tutti e 3 i sistemi — Oracle PRM, FOX e ServiceNow.</div>
+    </div>
+    <div class="filter-bar">
+      <select class="fsel" id="f-ra-ok" onchange="filterSubView('ok-body','f-ra-ok','ok-count')">
+        <option value="">Tutte le RA</option>
+      </select>
+      <span class="count-lbl" id="ok-count">– utenti</span>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="tbl-wrap">
@@ -748,6 +766,7 @@ function runCheck() {
   renderKoTable();
   renderPartialTable();
   renderOkTable();
+  populateSubFilters();
 
   nav('results');
 }
@@ -788,10 +807,36 @@ function renderResultsTable(rows) {
     </tr>`).join('');
 }
 
+function populateSubFilters() {
+  const raNames = [...new Set(RESULTS.map(r => r.ra_name).filter(Boolean))].sort();
+  ['f-ra-ko','f-ra-partial','f-ra-ok'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Tutte le RA</option>';
+    raNames.forEach(n => sel.innerHTML += `<option value="${esc(n)}"${n===cur?' selected':''}>${n}</option>`);
+  });
+}
+
+function filterSubView(bodyId, selectId, countId) {
+  const val = document.getElementById(selectId)?.value || '';
+  const rows = document.querySelectorAll('#' + bodyId + ' tr');
+  let visible = 0;
+  rows.forEach(tr => {
+    const show = !val || tr.dataset.ra === val;
+    tr.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  const lbl = document.getElementById(countId);
+  if (lbl) lbl.textContent = visible + ' utenti';
+}
+
 function renderKoTable() {
   const rows = RESULTS.filter(r => r.status === 'ko');
+  const sel = document.getElementById('ko-count');
+  if (sel) sel.textContent = rows.length + ' utenti';
   document.getElementById('ko-body').innerHTML = rows.length
-    ? rows.map(r => `<tr onclick="openDetail('${esc(r.nameKey)}')">
+    ? rows.map(r => `<tr onclick="openDetail('${esc(r.nameKey)}')" data-ra="${esc(r.ra_name||'')}">
         <td style="font-weight:500">${r.name}</td>
         <td style="color:var(--muted)">${r.date_act||'–'}</td>
         <td style="color:var(--muted);font-size:11px">${r.shop||'–'}</td>
@@ -804,8 +849,10 @@ function renderKoTable() {
 
 function renderPartialTable() {
   const rows = RESULTS.filter(r => r.status === 'partial');
+  const sel = document.getElementById('partial-count');
+  if (sel) sel.textContent = rows.length + ' utenti';
   document.getElementById('partial-body').innerHTML = rows.length
-    ? rows.map(r => `<tr onclick="openDetail('${esc(r.nameKey)}')">
+    ? rows.map(r => `<tr onclick="openDetail('${esc(r.nameKey)}')" data-ra="${esc(r.ra_name||'')}">
         <td style="font-weight:500">${r.name}</td>
         <td style="color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.email||'–'}</td>
         <td style="text-align:center">${sysCell(r.in_prm,'O','sb-prm-ok','sb-prm-no')}</td>
@@ -820,8 +867,10 @@ function renderPartialTable() {
 
 function renderOkTable() {
   const rows = RESULTS.filter(r => r.status === 'ok');
+  const sel = document.getElementById('ok-count');
+  if (sel) sel.textContent = rows.length + ' utenti';
   document.getElementById('ok-body').innerHTML = rows.length
-    ? rows.map(r => `<tr onclick="openDetail('${esc(r.nameKey)}')">
+    ? rows.map(r => `<tr onclick="openDetail('${esc(r.nameKey)}')" data-ra="${esc(r.ra_name||'')}">
         <td style="font-weight:500">${r.name}</td>
         <td style="color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.email||'–'}</td>
         <td><code style="font-size:10px;color:var(--accent)">${r.ad||'–'}</code></td>
