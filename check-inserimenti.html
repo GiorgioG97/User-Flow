@@ -79,6 +79,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .uz-status{font-size:10px;color:var(--muted)}
 .uz-file{font-size:10px;color:var(--ok);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px}
 .uz-file-ra{color:#F0BE6A}
+@keyframes bounce-left{0%,100%{transform:translateX(0)}50%{transform:translateX(-6px)}}
 
 .btn-analyze{padding:11px 30px;background:var(--accent);border:none;border-radius:5px;color:var(--bg);font-family:var(--fm);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
 .btn-analyze:hover{background:#9ECFBB;transform:translateY(-1px)}
@@ -246,15 +247,21 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
 
       <!-- RA FILE -->
       <div class="upload-section-lbl" style="color:#F0BE6A">① File Regional Assistant</div>
-      <div class="upload-grid-1">
-        <div class="uz" id="zone-ra">
-          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('ra',this)">
-          <div class="uz-icon" style="background:rgba(232,162,58,.12);color:#F0BE6A;border:1px solid rgba(232,162,58,.25)">RA</div>
-          <div class="uz-text">
-            <div class="uz-name">Inserimenti Regional Assistant</div>
-            <div class="uz-status" id="st-ra">Carica il file Excel compilato dalle RA</div>
-            <div class="uz-file uz-file-ra" id="fn-ra"></div>
+      <div style="display:flex;align-items:center;gap:16px;width:100%;max-width:780px;margin-bottom:10px">
+        <div class="upload-grid-1" style="flex:1;margin-bottom:0">
+          <div class="uz" id="zone-ra">
+            <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('ra',this)">
+            <div class="uz-icon" style="background:rgba(232,162,58,.12);color:#F0BE6A;border:1px solid rgba(232,162,58,.25)">RA</div>
+            <div class="uz-text">
+              <div class="uz-name">Inserimenti Regional Assistant</div>
+              <div class="uz-status" id="st-ra">Carica il file Excel compilato dalle RA</div>
+              <div class="uz-file uz-file-ra" id="fn-ra"></div>
+            </div>
           </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex-shrink:0;animation:bounce-left 1.2s ease-in-out infinite">
+          <div style="font-size:22px;color:#F0BE6A">←</div>
+          <div style="font-size:11px;color:#F0BE6A;max-width:180px;text-align:center;line-height:1.6;font-family:var(--fm)">Carica qui il file contenente gli inserimenti da verificare!</div>
         </div>
       </div>
 
