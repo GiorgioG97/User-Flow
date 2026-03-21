@@ -587,17 +587,26 @@ function normUser(s) {
 // Snow    → "Name" formato "Nome Cognome"          → stessa logica di FOX
 // ═══════════════════════════════════════════
 
-// Costruisce la chiave da un nome completo in formato "Nome [Secondo] Cognome"
-// (ultima parola = cognome, tutto il resto = nome)
+// Genera TUTTE le possibili chiavi da un nome completo "Nome [Secondo] Cognome".
+// Necessario per cognomi composti (es. "De Zordo", "D'Onofrio", "Sant'Andrea"):
+// non sappiamo quante parole forma il cognome, quindi proviamo tutti gli split.
+// L'indice di FOX e Snow mappa OGNI chiave possibile alla stessa riga.
+function allKeysFromFull(fullname) {
+  const parts = String(fullname || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return [];
+  if (parts.length === 1) return [norm(parts[0])];
+  const keys = [];
+  for (let i = 1; i < parts.length; i++) {
+    const nome    = parts.slice(0, i).join('');
+    const cognome = parts.slice(i).join('');
+    keys.push(norm(cognome) + norm(nome));
+  }
+  return keys;
+}
+// Manteniamo keyFromFull per retrocompatibilità (usa l'ultimo split = ultima parola)
 function keyFromFull(fullname) {
-  const parts = norm(fullname).split('').join('') !== ''
-    ? String(fullname).trim().split(/\s+/)
-    : [];
-  if (parts.length === 0) return '';
-  if (parts.length === 1) return norm(parts[0]);
-  const cognome = parts[parts.length - 1];
-  const nome    = parts.slice(0, parts.length - 1).join('');
-  return norm(cognome) + norm(nome);
+  const keys = allKeysFromFull(fullname);
+  return keys.length ? keys[keys.length - 1] : '';
 }
 
 // Costruisce la chiave da cognome e nome separati
@@ -696,18 +705,18 @@ function runCheck() {
     prmByKey[k] = primary || activeRows[0];
   }
 
-  // ── Indici FOX: byKey (ultima parola = cognome) ──
+  // ── Indici FOX: byKey — tutte le chiavi possibili per cognomi composti ──
   const foxByKey = {};
   RAW.fox.forEach(r => {
-    const k = keyFromFull(colVal(r, foxColFull));
-    if (k) foxByKey[k] = r;
+    const keys = allKeysFromFull(colVal(r, foxColFull));
+    keys.forEach(k => { if (k) foxByKey[k] = r; });
   });
 
-  // ── Indici Snow: byKey (ultima parola = cognome) ──
+  // ── Indici Snow: byKey — tutte le chiavi possibili per cognomi composti ──
   const snowByKey = {};
   RAW.snow.forEach(r => {
-    const k = keyFromFull(colVal(r, snowColFull));
-    if (k) snowByKey[k] = r;
+    const keys = allKeysFromFull(colVal(r, snowColFull));
+    keys.forEach(k => { if (k) snowByKey[k] = r; });
   });
 
   // ── Deduplica RA: una riga per persona (cognome+nome) ──
