@@ -257,7 +257,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
   <div class="view active" id="view-upload">
     <div class="upload-screen">
       <div class="upload-title">Check Nuovi Inserimenti</div>
-      <div class="upload-sub">Carica il file delle Regional Assistant e i 3 export di sistema per verificare se le nuove utenze si sono propagate correttamente. I caricamenti di Oracle HCM e Active Directory sono opzionali.</div>
+      <div class="upload-sub">Carica il file delle Regional Assistant e i 4 export di sistema per verificare se le nuove utenze si sono propagate correttamente. Il caricamento di Oracle HCM è opzionale.</div>
 
       <!-- RA FILE -->
       <div class="upload-section-lbl" style="color:#F0BE6A">① File Regional Assistant</div>
@@ -281,7 +281,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
 
       <!-- SYSTEM FILES -->
       <div class="upload-section-lbl">② Export dei sistemi (stessi file della dashboard principale)</div>
-      <div class="upload-grid-3">
+      <div class="upload-grid-3" style="grid-template-columns:repeat(4,1fr)">
         <div class="uz" id="zone-prm">
           <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('prm',this)">
           <div class="uz-icon" style="background:rgba(199,70,52,.14);color:#E8856E;border:1px solid rgba(199,70,52,.25)">O</div>
@@ -309,27 +309,27 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
             <div class="uz-file" id="fn-snow"></div>
           </div>
         </div>
-      </div>
-
-      <!-- HCM + AD FILE (opzionali) -->
-      <div class="upload-section-lbl" style="margin-top:4px">③ File opzionali</div>
-      <div style="width:100%;max-width:780px;margin-bottom:28px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="uz" id="zone-hcm">
-          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('hcm',this)">
-          <div class="uz-icon" style="background:rgba(123,79,191,.14);color:#B08ADF;border:1px solid rgba(123,79,191,.25)">H</div>
-          <div class="uz-text">
-            <div class="uz-name">Oracle HCM <span style="font-size:9px;color:var(--muted);font-weight:400">(opzionale)</span></div>
-            <div class="uz-status" id="st-hcm">HCM user export</div>
-            <div class="uz-file" id="fn-hcm"></div>
-          </div>
-        </div>
         <div class="uz" id="zone-ad">
           <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('ad',this)">
           <div class="uz-icon" style="background:rgba(42,122,90,.14);color:#5DC49A;border:1px solid rgba(42,122,90,.25)">AD</div>
           <div class="uz-text">
-            <div class="uz-name">Active Directory <span style="font-size:9px;color:var(--muted);font-weight:400">(opzionale)</span></div>
-            <div class="uz-status" id="st-ad">utenti_IT.xlsx (HQ + FIELD)</div>
+            <div class="uz-name">Active Directory</div>
+            <div class="uz-status" id="st-ad">utenti_IT export</div>
             <div class="uz-file" id="fn-ad"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HCM FILE (opzionale) -->
+      <div class="upload-section-lbl" style="margin-top:4px">③ Oracle HCM <span style="color:var(--muted);font-size:9px;letter-spacing:.08em;font-weight:400;text-transform:none">(opzionale)</span></div>
+      <div style="width:100%;max-width:780px;margin-bottom:28px">
+        <div class="uz" id="zone-hcm" style="max-width:calc(25% - 8px)">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('hcm',this)">
+          <div class="uz-icon" style="background:rgba(123,79,191,.14);color:#B08ADF;border:1px solid rgba(123,79,191,.25)">H</div>
+          <div class="uz-text">
+            <div class="uz-name">Oracle HCM</div>
+            <div class="uz-status" id="st-hcm">HCM user export</div>
+            <div class="uz-file" id="fn-hcm"></div>
           </div>
         </div>
       </div>
@@ -586,7 +586,7 @@ function loadFile(sys, input) {
 }
 
 function checkReady() {
-  const ok = RAW.ra && RAW.prm && RAW.fox && RAW.snow;
+  const ok = RAW.ra && RAW.prm && RAW.fox && RAW.snow && RAW.ad;
   document.getElementById('btn-analyze').disabled = !ok;
 }
 
