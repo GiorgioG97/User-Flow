@@ -12,7 +12,7 @@
   --bg:#0D0F0E; --bg2:#141716; --bg3:#1C1F1E; --bg4:#232624;
   --border:rgba(255,255,255,0.07); --border-hi:rgba(255,255,255,0.15);
   --text:#E8EAE9; --muted:#6B7370; --accent:#81B5A1;
-  --oracle:#C74634; --fox:#1B5DAA; --snow:#81B5A1; --hcm:#7B4FBF;
+  --oracle:#C74634; --fox:#1B5DAA; --snow:#81B5A1; --hcm:#7B4FBF; --ad:#2A7A5A;
   --ok:#5BAE76; --warn:#E8A23A; --danger:#D95B5B;
   --fm:'JetBrains Mono',monospace; --fd:'Syne',sans-serif;
 }
@@ -130,6 +130,8 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
 .sb-snow-no{background:rgba(255,255,255,.04);color:var(--muted)}
 .sb-hcm-ok{background:rgba(123,79,191,.2);color:#B08ADF}
 .sb-hcm-no{background:rgba(255,255,255,.04);color:var(--muted)}
+.sb-ad-ok{background:rgba(42,122,90,.2);color:#5DC49A}
+.sb-ad-no{background:rgba(255,255,255,.04);color:var(--muted)}
 
 /* ── BADGE ── */
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap}
@@ -228,6 +230,10 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
       <span class="sb-file-lbl"><span class="sb-file-dot" id="dot-hcm"></span>Oracle HCM</span>
       <span class="sb-file-val" id="cnt-hcm-rows">–</span>
     </div>
+    <div class="sb-file-row">
+      <span class="sb-file-lbl"><span class="sb-file-dot" id="dot-ad"></span>Active Directory</span>
+      <span class="sb-file-val" id="cnt-ad-rows">–</span>
+    </div>
     <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:8px">
       <button onclick="nav('upload')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:var(--fm);font-size:10px;cursor:pointer;width:100%;transition:all .12s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↺ Ricarica file</button>
     </div>
@@ -251,7 +257,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
   <div class="view active" id="view-upload">
     <div class="upload-screen">
       <div class="upload-title">Check Nuovi Inserimenti</div>
-      <div class="upload-sub">Carica il file delle Regional Assistant e i 3 export di sistema per verificare se le nuove utenze si sono propagate correttamente. Il caricamento di Oracle HCM è opzionale.</div>
+      <div class="upload-sub">Carica il file delle Regional Assistant e i 3 export di sistema per verificare se le nuove utenze si sono propagate correttamente. I caricamenti di Oracle HCM e Active Directory sono opzionali.</div>
 
       <!-- RA FILE -->
       <div class="upload-section-lbl" style="color:#F0BE6A">① File Regional Assistant</div>
@@ -305,16 +311,25 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
         </div>
       </div>
 
-      <!-- HCM FILE (opzionale) -->
-      <div class="upload-section-lbl" style="margin-top:4px">③ Oracle HCM <span style="color:var(--muted);font-size:9px;letter-spacing:.08em;font-weight:400;text-transform:none">(opzionale)</span></div>
-      <div style="width:100%;max-width:780px;margin-bottom:28px">
-        <div class="uz" id="zone-hcm" style="max-width:calc(33.33% - 7px)">
+      <!-- HCM + AD FILE (opzionali) -->
+      <div class="upload-section-lbl" style="margin-top:4px">③ File opzionali</div>
+      <div style="width:100%;max-width:780px;margin-bottom:28px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="uz" id="zone-hcm">
           <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('hcm',this)">
           <div class="uz-icon" style="background:rgba(123,79,191,.14);color:#B08ADF;border:1px solid rgba(123,79,191,.25)">H</div>
           <div class="uz-text">
-            <div class="uz-name">Oracle HCM</div>
-            <div class="uz-status" id="st-hcm">HCM user export <span style="color:var(--muted)">(facoltativo)</span></div>
+            <div class="uz-name">Oracle HCM <span style="font-size:9px;color:var(--muted);font-weight:400">(opzionale)</span></div>
+            <div class="uz-status" id="st-hcm">HCM user export</div>
             <div class="uz-file" id="fn-hcm"></div>
+          </div>
+        </div>
+        <div class="uz" id="zone-ad">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('ad',this)">
+          <div class="uz-icon" style="background:rgba(42,122,90,.14);color:#5DC49A;border:1px solid rgba(42,122,90,.25)">AD</div>
+          <div class="uz-text">
+            <div class="uz-name">Active Directory <span style="font-size:9px;color:var(--muted);font-weight:400">(opzionale)</span></div>
+            <div class="uz-status" id="st-ad">utenti_IT.xlsx (HQ + FIELD)</div>
+            <div class="uz-file" id="fn-ad"></div>
           </div>
         </div>
       </div>
@@ -362,6 +377,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
         <option value="nofox">Mancante in FOX</option>
         <option value="nosnow">Mancante in Snow</option>
         <option value="nohcm" id="f-sys-hcm" style="display:none">Mancante in HCM</option>
+        <option value="noad"  id="f-sys-ad"  style="display:none">Mancante in AD</option>
       </select>
       <select class="fsel" id="f-ra" onchange="applyFilters()">
         <option value="">Tutte le RA</option>
@@ -382,6 +398,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
             <th style="text-align:center">FOX</th>
             <th style="text-align:center">ServiceNow</th>
             <th style="text-align:center">Oracle HCM</th>
+            <th style="text-align:center">Active Directory</th>
             <th>Stato propagazione</th>
             <th>Inserito da (RA)</th>
           </tr></thead>
@@ -442,6 +459,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
             <th style="text-align:center">FOX</th>
             <th style="text-align:center">ServiceNow</th>
             <th style="text-align:center" id="th-partial-hcm" style="display:none">Oracle HCM</th>
+            <th style="text-align:center" id="th-partial-ad"  style="display:none">Active Directory</th>
             <th>Gap rilevato</th>
             <th>Data attivazione</th>
             <th>Inserito da (RA)</th>
@@ -475,6 +493,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
             <th>FOX</th>
             <th>ServiceNow</th>
             <th id="th-ok-hcm" style="display:none">Oracle HCM</th>
+            <th id="th-ok-ad"  style="display:none">Active Directory</th>
             <th>Data attivazione</th>
             <th>Inserito da (RA)</th>
           </tr></thead>
@@ -507,7 +526,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
-const RAW = { ra: null, prm: null, fox: null, snow: null, hcm: null };
+const RAW = { ra: null, prm: null, fox: null, snow: null, hcm: null, ad: null };
 let RESULTS = [];
 
 // ═══════════════════════════════════════════
@@ -542,8 +561,17 @@ function loadFile(sys, input) {
   reader.onload = e => {
     try {
       const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      let rows;
+      if (sys === 'ad') {
+        // AD ha più sheet (HQ, FIELD…) — uniscili tutti
+        rows = wb.SheetNames.flatMap(name => {
+          const ws = wb.Sheets[name];
+          return XLSX.utils.sheet_to_json(ws, { defval: '' });
+        });
+      } else {
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      }
       RAW[sys] = rows;
       const lbl = rows.length + ' righe';
       document.getElementById('st-' + sys).textContent = lbl;
@@ -675,6 +703,7 @@ function runCheck() {
   const foxH  = Object.keys(RAW.fox[0]  || {});
   const snowH = Object.keys(RAW.snow[0] || {});
   const hcmH  = RAW.hcm ? Object.keys(RAW.hcm[0] || {}) : [];
+  const adH   = RAW.ad  ? Object.keys(RAW.ad[0]  || {}) : [];
 
   // ── Colonne Oracle PRM ──
   const prmColLast   = findCol(prmH, 'LAST NAME', 'last name', 'lastname', 'cognome');
@@ -709,7 +738,14 @@ function runCheck() {
   const hcmColAD     = hcmH.length ? findCol(hcmH, 'AD_USER', 'ad_user', 'AD DOMAIN', 'ad domain') : null;
   const hcmColType   = hcmH.length ? findCol(hcmH, 'RESOURCE_TYPE', 'resource_type') : null;
 
-  // ── Colonne RA ──
+  // ── Colonne AD Active Directory (opzionale) ──
+  // Formato file: NomeUtente (Nome Cognome), UPN, Email, DataCreazione, OUProvenienza, Stato
+  const adColFull    = adH.length ? findCol(adH, 'NomeUtente', 'nome utente', 'name', 'displayname') : null;
+  const adColUPN     = adH.length ? findCol(adH, 'UPN', 'upn', 'userprincipalname') : null;
+  const adColEmail   = adH.length ? findCol(adH, 'Email', 'email', 'mail') : null;
+  const adColStatus  = adH.length ? findCol(adH, 'Stato', 'stato', 'status', 'active') : null;
+  const adColOU      = adH.length ? findCol(adH, 'OUProvenienza', 'ou', 'ouprovenienza') : null;
+  const adColDate    = adH.length ? findCol(adH, 'DataCreazione', 'data creazione', 'created') : null;
   const raColLast    = findCol(raH, 'cognome');
   const raColFirst   = findCol(raH, 'nome');
   const raColDate    = findCol(raH, 'Data attivazione', 'data attivazione');
@@ -790,6 +826,20 @@ function runCheck() {
     }
   }
 
+  // ── Indici AD Active Directory (opzionale): byKey ──
+  // NomeUtente è "Nome Cognome" → usiamo allKeysFromFull per cognomi composti
+  // Stato='Abilitato' = utente attivo
+  const adByKey = {};
+  if (RAW.ad) {
+    RAW.ad.forEach(r => {
+      const stato = colVal(r, adColStatus).toLowerCase();
+      if (stato && stato !== 'abilitato' && stato !== 'enabled' && stato !== 'true') return;
+      if (adColFull) {
+        allKeysFromFull(colVal(r, adColFull)).forEach(k => { if (k) adByKey[k] = r; });
+      }
+    });
+  }
+
   // ── Deduplica RA: una riga per persona (cognome+nome) ──
   const raDedup = {};
   RAW.ra.forEach(r => {
@@ -819,11 +869,13 @@ function runCheck() {
     const foxRow  = foxByKey[nameKey]  || fuzzyFind(foxByKey,  nameKey);
     const snowRow = snowByKey[nameKey] || fuzzyFind(snowByKey, nameKey);
     const hcmRow  = RAW.hcm ? (hcmByKey[nameKey] || fuzzyFind(hcmByKey, nameKey)) : null;
+    const adRow   = RAW.ad  ? (adByKey[nameKey]  || fuzzyFind(adByKey,  nameKey)) : null;
 
     const in_prm  = !!prmRow;
     const in_fox  = !!foxRow;
     const in_snow = !!snowRow;
     const in_hcm  = !!hcmRow;
+    const in_ad   = !!adRow;
     const sys_count = [in_prm, in_fox, in_snow].filter(Boolean).length;
 
     // Email: prendi dal sistema dove la troviamo
@@ -852,7 +904,7 @@ function runCheck() {
 
     return {
       idx: i + 1, name, ln, fn, nameKey, email, ad,
-      in_prm, in_fox, in_snow, in_hcm, sys_count, status, gap,
+      in_prm, in_fox, in_snow, in_hcm, in_ad, sys_count, status, gap,
       date_act:  colVal(r, raColDate),
       date_ins:  colVal(r, raColDateIns),
       shop:      colVal(r, raColShop),
@@ -864,7 +916,11 @@ function runCheck() {
       status_snow: snowRow ? colVal(snowRow, snowColStatus) : '',
       status_hcm:  hcmRow  ? colVal(hcmRow,  hcmColStatus)  : '',
       ad_prm, ad_fox, ad_snow, ad_hcm,
-      type_hcm: hcmRow && hcmColType ? colVal(hcmRow, hcmColType) : '',
+      type_hcm:   hcmRow && hcmColType ? colVal(hcmRow, hcmColType) : '',
+      status_ad:  adRow && adColStatus ? colVal(adRow, adColStatus) : '',
+      upn_ad:     adRow && adColUPN    ? colVal(adRow, adColUPN)    : '',
+      ou_ad:      adRow && adColOU     ? colVal(adRow, adColOU)     : '',
+      date_ad:    adRow && adColDate   ? colVal(adRow, adColDate)   : '',
       job_prm:  prmRow  ? colVal(prmRow,  prmColJob)  : (snowRow ? colVal(snowRow, snowColJob) : ''),
       area_prm: prmRow  ? colVal(prmRow,  prmColArea) || colVal(prmRow, prmColShop) : '',
     };
@@ -898,6 +954,12 @@ function runCheck() {
   } else {
     document.getElementById('cnt-hcm-rows').textContent = '–';
   }
+  if (RAW.ad) {
+    document.getElementById('cnt-ad-rows').textContent = RAW.ad.length;
+    document.getElementById('dot-ad').classList.add('loaded');
+  } else {
+    document.getElementById('cnt-ad-rows').textContent = '–';
+  }
   ['ra','prm','fox','snow'].forEach(s => {
     document.getElementById('dot-' + s).classList.add('loaded');
   });
@@ -916,6 +978,14 @@ function runCheck() {
   if (thPartialHcm) thPartialHcm.style.display = RAW.hcm ? '' : 'none';
   const thOkHcm = document.getElementById('th-ok-hcm');
   if (thOkHcm) thOkHcm.style.display = RAW.hcm ? '' : 'none';
+
+  // Mostra/nasconde elementi AD in base al file caricato
+  const adOpt = document.getElementById('f-sys-ad');
+  if (adOpt) adOpt.style.display = RAW.ad ? '' : 'none';
+  const thPartialAd = document.getElementById('th-partial-ad');
+  if (thPartialAd) thPartialAd.style.display = RAW.ad ? '' : 'none';
+  const thOkAd = document.getElementById('th-ok-ad');
+  if (thOkAd) thOkAd.style.display = RAW.ad ? '' : 'none';
 
   nav('results');
 }
@@ -943,6 +1013,7 @@ function renderResultsTable(rows) {
         data-nofox="${!r.in_fox?'1':'0'}"
         data-nosnow="${!r.in_snow?'1':'0'}"
         data-nohcm="${RAW.hcm && !r.in_hcm?'1':'0'}"
+        data-noad="${RAW.ad && !r.in_ad?'1':'0'}"
         data-ra="${esc(r.ra_name)}"
         data-search="${(r.name+' '+r.email+' '+r.ra_name).toLowerCase()}">
       <td style="color:var(--muted)">${r.idx}</td>
@@ -953,6 +1024,7 @@ function renderResultsTable(rows) {
       <td style="text-align:center">${sysCell(r.in_fox,'F','sb-fox-ok','sb-fox-no')}</td>
       <td style="text-align:center">${sysCell(r.in_snow,'S','sb-snow-ok','sb-snow-no')}</td>
       <td style="text-align:center">${RAW.hcm ? sysCell(r.in_hcm,'H','sb-hcm-ok','sb-hcm-no') : '<span style="color:var(--muted);font-size:10px">–</span>'}</td>
+      <td style="text-align:center">${RAW.ad  ? sysCell(r.in_ad,'AD','sb-ad-ok','sb-ad-no')   : '<span style="color:var(--muted);font-size:10px">–</span>'}</td>
       <td>${semHtml(r)}</td>
       <td style="color:var(--muted);font-size:11px">${r.ra_name||'–'}</td>
     </tr>`).join('');
@@ -1010,11 +1082,12 @@ function renderPartialTable() {
         <td style="text-align:center">${sysCell(r.in_fox,'F','sb-fox-ok','sb-fox-no')}</td>
         <td style="text-align:center">${sysCell(r.in_snow,'S','sb-snow-ok','sb-snow-no')}</td>
         ${RAW.hcm ? `<td style="text-align:center">${sysCell(r.in_hcm,'H','sb-hcm-ok','sb-hcm-no')}</td>` : ''}
+        ${RAW.ad  ? `<td style="text-align:center">${sysCell(r.in_ad,'AD','sb-ad-ok','sb-ad-no')}</td>`   : ''}
         <td style="color:#F0BE6A;font-size:11px">${r.gap}</td>
         <td style="color:var(--muted)">${r.date_act||'–'}</td>
         <td style="color:var(--muted)">${r.ra_name||'–'}</td>
       </tr>`).join('')
-    : `<tr><td colspan="${RAW.hcm?9:8}" style="text-align:center;padding:40px;color:var(--muted)">✓ Nessun utente parziale</td></tr>`;
+    : `<tr><td colspan="${8+(RAW.hcm?1:0)+(RAW.ad?1:0)}" style="text-align:center;padding:40px;color:var(--muted)">✓ Nessun utente parziale</td></tr>`;
 }
 
 function renderOkTable() {
@@ -1030,10 +1103,11 @@ function renderOkTable() {
         <td><span class="badge b-ok">${r.status_fox||'ATT'}</span></td>
         <td><span class="badge b-ok">${r.status_snow||'True'}</span></td>
         ${RAW.hcm ? `<td style="text-align:center">${sysCell(r.in_hcm,'H','sb-hcm-ok','sb-hcm-no')}</td>` : ''}
+        ${RAW.ad  ? `<td style="text-align:center">${sysCell(r.in_ad,'AD','sb-ad-ok','sb-ad-no')}</td>`   : ''}
         <td style="color:var(--muted)">${r.date_act||'–'}</td>
         <td style="color:var(--muted)">${r.ra_name||'–'}</td>
       </tr>`).join('')
-    : `<tr><td colspan="${RAW.hcm?9:8}" style="text-align:center;padding:40px;color:var(--muted)">Nessun utente completamente propagato</td></tr>`;
+    : `<tr><td colspan="${8+(RAW.hcm?1:0)+(RAW.ad?1:0)}" style="text-align:center;padding:40px;color:var(--muted)">Nessun utente completamente propagato</td></tr>`;
 }
 
 // ═══════════════════════════════════════════
@@ -1081,9 +1155,12 @@ function openDetail(nameKey) {
   if (r.in_fox)  badges.innerHTML += ` <span class="badge" style="background:rgba(27,93,170,.12);color:#7AABDF">FOX</span>`;
   if (r.in_snow) badges.innerHTML += ` <span class="badge" style="background:rgba(129,181,161,.12);color:var(--snow)">ServiceNow</span>`;
   if (RAW.hcm && r.in_hcm) badges.innerHTML += ` <span class="badge" style="background:rgba(123,79,191,.12);color:#B08ADF">Oracle HCM</span>`;
+  if (RAW.ad  && r.in_ad)  badges.innerHTML += ` <span class="badge" style="background:rgba(42,122,90,.12);color:#5DC49A">Active Directory</span>`;
 
   const pgrid = document.getElementById('p-grid');
-  pgrid.classList.toggle('has-hcm', !!RAW.hcm);
+  // 3 colonne base; se HCM e AD entrambi presenti → 2 colonne (griglia 2×3)
+  const extraCount = (RAW.hcm ? 1 : 0) + (RAW.ad ? 1 : 0);
+  pgrid.style.gridTemplateColumns = extraCount >= 2 ? 'repeat(2,1fr)' : 'repeat(3,1fr)';
   pgrid.innerHTML = `
     <div class="pcell">
       <div class="pc-sys">Oracle PRM</div>
@@ -1110,6 +1187,14 @@ function openDetail(nameKey) {
       ${r.ad_hcm     ? `<div class="pc-detail">AD: ${r.ad_hcm}</div>` : ''}
       ${r.status_hcm ? `<div class="pc-detail">Status flag: ${r.status_hcm}</div>` : ''}
       ${r.type_hcm   ? `<div class="pc-detail">Resource type: ${r.type_hcm}</div>` : ''}
+    </div>` : ''}
+    ${RAW.ad ? `<div class="pcell">
+      <div class="pc-sys">Active Directory</div>
+      <div class="pc-status" style="color:${r.in_ad?'#7ACD96':'#E88080'}">${r.in_ad?'✓ Trovato':'✗ Non trovato'}</div>
+      ${r.upn_ad    ? `<div class="pc-detail">UPN: ${r.upn_ad}</div>` : ''}
+      ${r.status_ad ? `<div class="pc-detail">Stato: ${r.status_ad}</div>` : ''}
+      ${r.date_ad   ? `<div class="pc-detail">Creato: ${r.date_ad}</div>` : ''}
+      ${r.ou_ad     ? `<div class="pc-detail" style="font-size:9px;word-break:break-all;color:var(--muted)">${r.ou_ad}</div>` : ''}
     </div>` : ''}`;
 
   document.getElementById('p-ra').innerHTML = `
