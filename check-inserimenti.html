@@ -12,7 +12,7 @@
   --bg:#0D0F0E; --bg2:#141716; --bg3:#1C1F1E; --bg4:#232624;
   --border:rgba(255,255,255,0.07); --border-hi:rgba(255,255,255,0.15);
   --text:#E8EAE9; --muted:#6B7370; --accent:#81B5A1;
-  --oracle:#C74634; --fox:#1B5DAA; --snow:#81B5A1;
+  --oracle:#C74634; --fox:#1B5DAA; --snow:#81B5A1; --hcm:#7B4FBF;
   --ok:#5BAE76; --warn:#E8A23A; --danger:#D95B5B;
   --fm:'JetBrains Mono',monospace; --fd:'Syne',sans-serif;
 }
@@ -128,6 +128,8 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
 .sb-fox-no{background:rgba(255,255,255,.04);color:var(--muted)}
 .sb-snow-ok{background:rgba(129,181,161,.2);color:var(--snow)}
 .sb-snow-no{background:rgba(255,255,255,.04);color:var(--muted)}
+.sb-hcm-ok{background:rgba(123,79,191,.2);color:#B08ADF}
+.sb-hcm-no{background:rgba(255,255,255,.04);color:var(--muted)}
 
 /* ── BADGE ── */
 .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;white-space:nowrap}
@@ -156,6 +158,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
 .panel-sub{font-size:11px;color:var(--muted);margin-bottom:16px}
 .panel-section{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px;padding-top:14px;border-top:1px solid var(--border)}
 .panel-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.panel-grid.has-hcm{grid-template-columns:repeat(2,1fr)}
 .pcell{background:var(--bg3);border-radius:6px;padding:10px 12px}
 .pc-sys{font-size:9px;color:var(--muted);margin-bottom:6px;letter-spacing:.05em}
 .pc-status{font-size:13px;font-weight:500;margin-bottom:4px}
@@ -221,6 +224,10 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
       <span class="sb-file-lbl"><span class="sb-file-dot" id="dot-snow"></span>ServiceNow</span>
       <span class="sb-file-val" id="cnt-snow-rows">–</span>
     </div>
+    <div class="sb-file-row">
+      <span class="sb-file-lbl"><span class="sb-file-dot" id="dot-hcm"></span>Oracle HCM</span>
+      <span class="sb-file-val" id="cnt-hcm-rows">–</span>
+    </div>
     <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:8px">
       <button onclick="nav('upload')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:var(--fm);font-size:10px;cursor:pointer;width:100%;transition:all .12s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↺ Ricarica file</button>
     </div>
@@ -244,7 +251,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
   <div class="view active" id="view-upload">
     <div class="upload-screen">
       <div class="upload-title">Check Nuovi Inserimenti</div>
-      <div class="upload-sub">Carica il file delle Regional Assistant e i 3 export di sistema per verificare se le nuove utenze si sono propagate correttamente.</div>
+      <div class="upload-sub">Carica il file delle Regional Assistant e i 3 export di sistema per verificare se le nuove utenze si sono propagate correttamente. Il caricamento di Oracle HCM è opzionale.</div>
 
       <!-- RA FILE -->
       <div class="upload-section-lbl" style="color:#F0BE6A">① File Regional Assistant</div>
@@ -267,7 +274,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
       </div>
 
       <!-- SYSTEM FILES -->
-      <div class="upload-section-lbl">② Export dei 3 sistemi (stessi file della dashboard principale)</div>
+      <div class="upload-section-lbl">② Export dei sistemi (stessi file della dashboard principale)</div>
       <div class="upload-grid-3">
         <div class="uz" id="zone-prm">
           <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('prm',this)">
@@ -294,6 +301,20 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
             <div class="uz-name">ServiceNow</div>
             <div class="uz-status" id="st-snow">sys_user export IT</div>
             <div class="uz-file" id="fn-snow"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- HCM FILE (opzionale) -->
+      <div class="upload-section-lbl" style="margin-top:4px">③ Oracle HCM <span style="color:var(--muted);font-size:9px;letter-spacing:.08em;font-weight:400;text-transform:none">(opzionale)</span></div>
+      <div style="width:100%;max-width:780px;margin-bottom:28px">
+        <div class="uz" id="zone-hcm" style="max-width:calc(33.33% - 7px)">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('hcm',this)">
+          <div class="uz-icon" style="background:rgba(123,79,191,.14);color:#B08ADF;border:1px solid rgba(123,79,191,.25)">H</div>
+          <div class="uz-text">
+            <div class="uz-name">Oracle HCM</div>
+            <div class="uz-status" id="st-hcm">HCM user export <span style="color:var(--muted)">(facoltativo)</span></div>
+            <div class="uz-file" id="fn-hcm"></div>
           </div>
         </div>
       </div>
@@ -340,6 +361,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
         <option value="noprm">Mancante in Oracle</option>
         <option value="nofox">Mancante in FOX</option>
         <option value="nosnow">Mancante in Snow</option>
+        <option value="nohcm" id="f-sys-hcm" style="display:none">Mancante in HCM</option>
       </select>
       <select class="fsel" id="f-ra" onchange="applyFilters()">
         <option value="">Tutte le RA</option>
@@ -359,6 +381,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
             <th style="text-align:center">Oracle PRM</th>
             <th style="text-align:center">FOX</th>
             <th style="text-align:center">ServiceNow</th>
+            <th style="text-align:center">Oracle HCM</th>
             <th>Stato propagazione</th>
             <th>Inserito da (RA)</th>
           </tr></thead>
@@ -418,6 +441,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
             <th style="text-align:center">Oracle PRM</th>
             <th style="text-align:center">FOX</th>
             <th style="text-align:center">ServiceNow</th>
+            <th style="text-align:center" id="th-partial-hcm" style="display:none">Oracle HCM</th>
             <th>Gap rilevato</th>
             <th>Data attivazione</th>
             <th>Inserito da (RA)</th>
@@ -432,7 +456,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
   <div class="view" id="view-ok">
     <div class="alert alert-info">
       <span style="font-size:15px;flex-shrink:0">✓</span>
-      <div>Utenti correttamente propagati in tutti e 3 i sistemi — Oracle PRM, FOX e ServiceNow.</div>
+      <div>Utenti correttamente propagati in tutti e 3 i sistemi — Oracle PRM, FOX e ServiceNow. Se HCM è caricato, viene mostrata anche la colonna corrispondente.</div>
     </div>
     <div class="filter-bar">
       <select class="fsel" id="f-ra-ok" onchange="filterSubView('ok-body','f-ra-ok','ok-count')">
@@ -450,6 +474,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
             <th>Oracle PRM</th>
             <th>FOX</th>
             <th>ServiceNow</th>
+            <th id="th-ok-hcm" style="display:none">Oracle HCM</th>
             <th>Data attivazione</th>
             <th>Inserito da (RA)</th>
           </tr></thead>
@@ -482,7 +507,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
-const RAW = { ra: null, prm: null, fox: null, snow: null };
+const RAW = { ra: null, prm: null, fox: null, snow: null, hcm: null };
 let RESULTS = [];
 
 // ═══════════════════════════════════════════
@@ -649,6 +674,7 @@ function runCheck() {
   const prmH  = Object.keys(RAW.prm[0]  || {});
   const foxH  = Object.keys(RAW.fox[0]  || {});
   const snowH = Object.keys(RAW.snow[0] || {});
+  const hcmH  = RAW.hcm ? Object.keys(RAW.hcm[0] || {}) : [];
 
   // ── Colonne Oracle PRM ──
   const prmColLast   = findCol(prmH, 'LAST NAME', 'last name', 'lastname', 'cognome');
@@ -672,6 +698,16 @@ function runCheck() {
   const snowColAD     = findCol(snowH, 'AD Doman', 'ad doman', 'ad domain', 'UAD', 'uad');
   const snowColStatus = findCol(snowH, 'Active', 'active', 'status');
   const snowColJob    = findCol(snowH, 'Structure code (IT)', 'structure code (it)');
+
+  // ── Colonne Oracle HCM (opzionale) ──
+  // Formato file: LAST_NAME, FIRST_NAME, STATUS_FLAG, EMAIL, AD_USER, RESOURCE_TYPE, NAME_DISPLAY
+  const hcmColLast   = hcmH.length ? findCol(hcmH, 'LAST_NAME', 'LAST NAME', 'last name', 'lastname', 'cognome') : null;
+  const hcmColFirst  = hcmH.length ? findCol(hcmH, 'FIRST_NAME', 'FIRST NAME', 'first name', 'firstname', 'nome') : null;
+  const hcmColFull   = hcmH.length ? findCol(hcmH, 'NAME_DISPLAY', 'Name', 'name', 'full name', 'fullname', 'display name') : null;
+  const hcmColEmail  = hcmH.length ? findCol(hcmH, 'EMAIL', 'email', 'mail', 'AMPLIFON EMAIL') : null;
+  const hcmColStatus = hcmH.length ? findCol(hcmH, 'STATUS_FLAG', 'status', 'active', 'ASSIGNMENT STATUS') : null;
+  const hcmColAD     = hcmH.length ? findCol(hcmH, 'AD_USER', 'ad_user', 'AD DOMAIN', 'ad domain') : null;
+  const hcmColType   = hcmH.length ? findCol(hcmH, 'RESOURCE_TYPE', 'resource_type') : null;
 
   // ── Colonne RA ──
   const raColLast    = findCol(raH, 'cognome');
@@ -720,6 +756,40 @@ function runCheck() {
     keys.forEach(k => { if (k) snowByKey[k] = r; });
   });
 
+  // ── Indici HCM (opzionale): byKey ──
+  // STATUS_FLAG='Y' = attivo (equivalente a ACTIVE in PRM)
+  // Stessa logica PRM: indicizza solo chi ha almeno una riga STATUS_FLAG='Y'
+  const hcmByKey = {};
+  if (RAW.hcm) {
+    const hcmAllRows = {};
+    RAW.hcm.forEach(r => {
+      // Indexiamo sia per LAST_NAME+FIRST_NAME che per NAME_DISPLAY (fallback)
+      const keys = new Set();
+      if (hcmColLast && hcmColFirst) {
+        const k = keyFromParts(colVal(r, hcmColLast), colVal(r, hcmColFirst));
+        if (k) keys.add(k);
+      }
+      if (hcmColFull) {
+        allKeysFromFull(colVal(r, hcmColFull)).forEach(k => { if (k) keys.add(k); });
+      }
+      keys.forEach(k => {
+        if (!hcmAllRows[k]) hcmAllRows[k] = [];
+        hcmAllRows[k].push(r);
+      });
+    });
+    // Indicizza solo chi ha almeno una riga STATUS_FLAG='Y' (attivo)
+    for (const [k, rows] of Object.entries(hcmAllRows)) {
+      const activeRows = hcmColStatus
+        ? rows.filter(r => colVal(r, hcmColStatus).toUpperCase() === 'Y')
+        : rows;
+      if (activeRows.length === 0) continue;
+      // Preferisci PRIMARY_ASSIGNMENT='Y' se presente, altrimenti prima riga attiva
+      const hcmColPrimary = findCol(hcmH, 'PRIMARY_ASSIGNMENT', 'primary_assignment', 'PRIMARY ASSIGNMENT');
+      const primary = activeRows.find(r => colVal(r, hcmColPrimary) === 'Y');
+      hcmByKey[k] = primary || activeRows[0];
+    }
+  }
+
   // ── Deduplica RA: una riga per persona (cognome+nome) ──
   const raDedup = {};
   RAW.ra.forEach(r => {
@@ -748,10 +818,12 @@ function runCheck() {
     const prmRow  = prmByKey[nameKey]  || fuzzyFind(prmByKey,  nameKey);
     const foxRow  = foxByKey[nameKey]  || fuzzyFind(foxByKey,  nameKey);
     const snowRow = snowByKey[nameKey] || fuzzyFind(snowByKey, nameKey);
+    const hcmRow  = RAW.hcm ? (hcmByKey[nameKey] || fuzzyFind(hcmByKey, nameKey)) : null;
 
     const in_prm  = !!prmRow;
     const in_fox  = !!foxRow;
     const in_snow = !!snowRow;
+    const in_hcm  = !!hcmRow;
     const sys_count = [in_prm, in_fox, in_snow].filter(Boolean).length;
 
     // Email: prendi dal sistema dove la troviamo
@@ -764,7 +836,8 @@ function runCheck() {
     const ad_prm  = prmRow  ? normUser(colVal(prmRow,  prmColAD))  : '';
     const ad_fox  = foxRow  ? normUser(colVal(foxRow,  foxColAD))  : '';
     const ad_snow = snowRow ? normUser(colVal(snowRow, snowColAD)) : '';
-    const ad      = ad_prm || ad_fox || ad_snow;
+    const ad_hcm  = hcmRow  ? normUser(colVal(hcmRow,  hcmColAD))  : '';
+    const ad      = ad_prm || ad_fox || ad_snow || ad_hcm;
 
     const status = sys_count === 3 ? 'ok' : sys_count === 0 ? 'ko' : 'partial';
 
@@ -779,7 +852,7 @@ function runCheck() {
 
     return {
       idx: i + 1, name, ln, fn, nameKey, email, ad,
-      in_prm, in_fox, in_snow, sys_count, status, gap,
+      in_prm, in_fox, in_snow, in_hcm, sys_count, status, gap,
       date_act:  colVal(r, raColDate),
       date_ins:  colVal(r, raColDateIns),
       shop:      colVal(r, raColShop),
@@ -789,7 +862,9 @@ function runCheck() {
       status_prm:  prmRow  ? colVal(prmRow,  prmColStatus)  : '',
       status_fox:  foxRow  ? colVal(foxRow,  foxColStatus)  : '',
       status_snow: snowRow ? colVal(snowRow, snowColStatus) : '',
-      ad_prm, ad_fox, ad_snow,
+      status_hcm:  hcmRow  ? colVal(hcmRow,  hcmColStatus)  : '',
+      ad_prm, ad_fox, ad_snow, ad_hcm,
+      type_hcm: hcmRow && hcmColType ? colVal(hcmRow, hcmColType) : '',
       job_prm:  prmRow  ? colVal(prmRow,  prmColJob)  : (snowRow ? colVal(snowRow, snowColJob) : ''),
       area_prm: prmRow  ? colVal(prmRow,  prmColArea) || colVal(prmRow, prmColShop) : '',
     };
@@ -817,6 +892,12 @@ function runCheck() {
   document.getElementById('cnt-prm-rows').textContent  = RAW.prm.length;
   document.getElementById('cnt-fox-rows').textContent  = RAW.fox.length;
   document.getElementById('cnt-snow-rows').textContent = RAW.snow.length;
+  if (RAW.hcm) {
+    document.getElementById('cnt-hcm-rows').textContent = RAW.hcm.length;
+    document.getElementById('dot-hcm').classList.add('loaded');
+  } else {
+    document.getElementById('cnt-hcm-rows').textContent = '–';
+  }
   ['ra','prm','fox','snow'].forEach(s => {
     document.getElementById('dot-' + s).classList.add('loaded');
   });
@@ -827,6 +908,14 @@ function runCheck() {
   renderPartialTable();
   renderOkTable();
   populateSubFilters();
+
+  // Mostra/nasconde elementi HCM in base al file caricato
+  const hcmOpt = document.getElementById('f-sys-hcm');
+  if (hcmOpt) hcmOpt.style.display = RAW.hcm ? '' : 'none';
+  const thPartialHcm = document.getElementById('th-partial-hcm');
+  if (thPartialHcm) thPartialHcm.style.display = RAW.hcm ? '' : 'none';
+  const thOkHcm = document.getElementById('th-ok-hcm');
+  if (thOkHcm) thOkHcm.style.display = RAW.hcm ? '' : 'none';
 
   nav('results');
 }
@@ -853,6 +942,7 @@ function renderResultsTable(rows) {
         data-noprm="${!r.in_prm?'1':'0'}"
         data-nofox="${!r.in_fox?'1':'0'}"
         data-nosnow="${!r.in_snow?'1':'0'}"
+        data-nohcm="${RAW.hcm && !r.in_hcm?'1':'0'}"
         data-ra="${esc(r.ra_name)}"
         data-search="${(r.name+' '+r.email+' '+r.ra_name).toLowerCase()}">
       <td style="color:var(--muted)">${r.idx}</td>
@@ -862,6 +952,7 @@ function renderResultsTable(rows) {
       <td style="text-align:center">${sysCell(r.in_prm,'O','sb-prm-ok','sb-prm-no')}</td>
       <td style="text-align:center">${sysCell(r.in_fox,'F','sb-fox-ok','sb-fox-no')}</td>
       <td style="text-align:center">${sysCell(r.in_snow,'S','sb-snow-ok','sb-snow-no')}</td>
+      <td style="text-align:center">${RAW.hcm ? sysCell(r.in_hcm,'H','sb-hcm-ok','sb-hcm-no') : '<span style="color:var(--muted);font-size:10px">–</span>'}</td>
       <td>${semHtml(r)}</td>
       <td style="color:var(--muted);font-size:11px">${r.ra_name||'–'}</td>
     </tr>`).join('');
@@ -918,11 +1009,12 @@ function renderPartialTable() {
         <td style="text-align:center">${sysCell(r.in_prm,'O','sb-prm-ok','sb-prm-no')}</td>
         <td style="text-align:center">${sysCell(r.in_fox,'F','sb-fox-ok','sb-fox-no')}</td>
         <td style="text-align:center">${sysCell(r.in_snow,'S','sb-snow-ok','sb-snow-no')}</td>
+        ${RAW.hcm ? `<td style="text-align:center">${sysCell(r.in_hcm,'H','sb-hcm-ok','sb-hcm-no')}</td>` : ''}
         <td style="color:#F0BE6A;font-size:11px">${r.gap}</td>
         <td style="color:var(--muted)">${r.date_act||'–'}</td>
         <td style="color:var(--muted)">${r.ra_name||'–'}</td>
       </tr>`).join('')
-    : `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">✓ Nessun utente parziale</td></tr>`;
+    : `<tr><td colspan="${RAW.hcm?9:8}" style="text-align:center;padding:40px;color:var(--muted)">✓ Nessun utente parziale</td></tr>`;
 }
 
 function renderOkTable() {
@@ -937,10 +1029,11 @@ function renderOkTable() {
         <td><span class="badge b-ok">${r.status_prm||'ACTIVE'}</span></td>
         <td><span class="badge b-ok">${r.status_fox||'ATT'}</span></td>
         <td><span class="badge b-ok">${r.status_snow||'True'}</span></td>
+        ${RAW.hcm ? `<td style="text-align:center">${sysCell(r.in_hcm,'H','sb-hcm-ok','sb-hcm-no')}</td>` : ''}
         <td style="color:var(--muted)">${r.date_act||'–'}</td>
         <td style="color:var(--muted)">${r.ra_name||'–'}</td>
       </tr>`).join('')
-    : `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">Nessun utente completamente propagato</td></tr>`;
+    : `<tr><td colspan="${RAW.hcm?9:8}" style="text-align:center;padding:40px;color:var(--muted)">Nessun utente completamente propagato</td></tr>`;
 }
 
 // ═══════════════════════════════════════════
@@ -987,8 +1080,11 @@ function openDetail(nameKey) {
   if (r.in_prm)  badges.innerHTML += ` <span class="badge" style="background:rgba(199,70,52,.12);color:#E8856E">Oracle PRM</span>`;
   if (r.in_fox)  badges.innerHTML += ` <span class="badge" style="background:rgba(27,93,170,.12);color:#7AABDF">FOX</span>`;
   if (r.in_snow) badges.innerHTML += ` <span class="badge" style="background:rgba(129,181,161,.12);color:var(--snow)">ServiceNow</span>`;
+  if (RAW.hcm && r.in_hcm) badges.innerHTML += ` <span class="badge" style="background:rgba(123,79,191,.12);color:#B08ADF">Oracle HCM</span>`;
 
-  document.getElementById('p-grid').innerHTML = `
+  const pgrid = document.getElementById('p-grid');
+  pgrid.classList.toggle('has-hcm', !!RAW.hcm);
+  pgrid.innerHTML = `
     <div class="pcell">
       <div class="pc-sys">Oracle PRM</div>
       <div class="pc-status" style="color:${r.in_prm?'#7ACD96':'#E88080'}">${r.in_prm?'✓ Trovato':'✗ Non trovato'}</div>
@@ -1007,7 +1103,14 @@ function openDetail(nameKey) {
       <div class="pc-status" style="color:${r.in_snow?'#7ACD96':'#E88080'}">${r.in_snow?'✓ Trovato':'✗ Non trovato'}</div>
       ${r.ad_snow    ? `<div class="pc-detail">AD: ${r.ad_snow}</div>` : ''}
       ${r.status_snow? `<div class="pc-detail">Attivo: ${r.status_snow}</div>` : ''}
-    </div>`;
+    </div>
+    ${RAW.hcm ? `<div class="pcell">
+      <div class="pc-sys">Oracle HCM</div>
+      <div class="pc-status" style="color:${r.in_hcm?'#7ACD96':'#E88080'}">${r.in_hcm?'✓ Trovato':'✗ Non trovato'}</div>
+      ${r.ad_hcm     ? `<div class="pc-detail">AD: ${r.ad_hcm}</div>` : ''}
+      ${r.status_hcm ? `<div class="pc-detail">Status flag: ${r.status_hcm}</div>` : ''}
+      ${r.type_hcm   ? `<div class="pc-detail">Resource type: ${r.type_hcm}</div>` : ''}
+    </div>` : ''}`;
 
   document.getElementById('p-ra').innerHTML = `
     ${r.date_act ? `<div class="kv"><div class="kv-k">Data attivazione</div><div class="kv-v">${r.date_act}</div></div>` : ''}
