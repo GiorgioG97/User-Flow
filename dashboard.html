@@ -13,7 +13,7 @@
   --bg:#0D0F0E; --bg2:#141716; --bg3:#1C1F1E; --bg4:#232624;
   --border:rgba(255,255,255,0.07); --border-hi:rgba(255,255,255,0.15);
   --text:#E8EAE9; --muted:#6B7370; --accent:#81B5A1;
-  --oracle:#C74634; --fox:#1B5DAA; --snow:#81B5A1;
+  --oracle:#C74634; --fox:#1B5DAA; --snow:#81B5A1; --ad:#2A7A5A;
   --ok:#5BAE76; --warn:#E8A23A; --danger:#D95B5B;
   --fm:'JetBrains Mono',monospace; --fd:'Syne',sans-serif;
 }
@@ -119,6 +119,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
 .b-prm{background:rgba(199,70,52,.12);color:#E8856E}
 .b-fox{background:rgba(27,93,170,.12);color:#7AABDF}
 .b-snow{background:rgba(129,181,161,.12);color:var(--snow)}
+.b-ad{background:rgba(42,122,90,.12);color:#5DC49A}
 .b-all{background:rgba(91,174,118,.12);color:#7ACD96}
 .b-2{background:rgba(129,181,161,.1);color:#81B5A1}
 .b-1{background:rgba(232,162,58,.1);color:#F0BE6A}
@@ -166,7 +167,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
 <div class="sidebar">
   <div class="sb-logo">
     <div class="sb-title">UserRecon</div>
-    <div class="sb-sub">Oracle PRM · FOX · ServiceNow</div>
+    <div class="sb-sub">Oracle PRM · FOX · ServiceNow · AD</div>
   </div>
 
   <div class="sb-section">Viste</div>
@@ -204,6 +205,10 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
       <span class="sb-sys-lbl"><span class="sb-sys-dot" style="background:#81B5A1"></span>ServiceNow</span>
       <span class="sb-sys-val" id="cnt-snow">–</span>
     </div>
+    <div class="sb-sys-row">
+      <span class="sb-sys-lbl"><span class="sb-sys-dot" style="background:#2A7A5A"></span>Active Directory</span>
+      <span class="sb-sys-val" id="cnt-ad">–</span>
+    </div>
     <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:8px">
       <div class="sb-sys-row">
         <span style="font-size:10px;color:var(--muted)">Data export</span>
@@ -227,9 +232,9 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
   <div class="view active" id="view-upload">
     <div class="upload-screen">
       <div class="upload-title">User Reconciliation</div>
-      <div class="upload-sub">Carica i 3 export per confrontare le utenze di Oracle PRM, FOX e ServiceNow</div>
+      <div class="upload-sub">Carica i 4 export per confrontare le utenze di Oracle PRM, FOX, ServiceNow e Active Directory</div>
 
-      <div class="upload-grid">
+      <div class="upload-grid" style="grid-template-columns:repeat(4,1fr);max-width:960px">
         <div class="upload-zone" id="zone-prm">
           <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('prm',this)">
           <div class="uz-icon" style="background:rgba(199,70,52,.15);color:#E8856E">O</div>
@@ -250,6 +255,13 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
           <div class="uz-name">ServiceNow</div>
           <div class="uz-status" id="st-snow">Carica Excel / CSV</div>
           <div class="uz-file" id="fn-snow"></div>
+        </div>
+        <div class="upload-zone" id="zone-ad">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('ad',this)">
+          <div class="uz-icon" style="background:rgba(42,122,90,.15);color:#5DC49A;font-size:13px">AD</div>
+          <div class="uz-name">Active Directory</div>
+          <div class="uz-status" id="st-ad">Carica Excel / CSV</div>
+          <div class="uz-file" id="fn-ad"></div>
         </div>
       </div>
 
@@ -290,6 +302,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
           <span class="legend-item"><span class="legend-sq" style="background:#C74634"></span>Oracle PRM</span>
           <span class="legend-item"><span class="legend-sq" style="background:#1B5DAA"></span>FOX</span>
           <span class="legend-item"><span class="legend-sq" style="background:#81B5A1"></span>ServiceNow</span>
+          <span class="legend-item"><span class="legend-sq" style="background:#2A7A5A"></span>Active Directory</span>
         </div>
         <div class="chart-wrap"><canvas id="barChart"></canvas></div>
       </div>
@@ -330,6 +343,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
         <option value="prm">Ha Oracle PRM</option>
         <option value="fox">Ha FOX</option>
         <option value="snow">Ha ServiceNow</option>
+        <option value="ad">Ha Active Directory</option>
       </select>
       <select class="fsel" id="f-status" onchange="applyFilters()">
         <option value="">Qualsiasi status</option>
@@ -348,6 +362,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
           <th style="text-align:center">PRM</th>
           <th style="text-align:center">FOX</th>
           <th style="text-align:center">Snow</th>
+          <th style="text-align:center">AD</th>
           <th>Ruolo</th>
           <th>Area</th>
           <th>Copertura</th>
@@ -461,7 +476,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
-const RAW = { prm: null, fox: null, snow: null };
+const RAW = { prm: null, fox: null, snow: null, ad: null };
 let DATA = [];
 let charts = {};
 
@@ -498,8 +513,16 @@ function loadFile(sys, input) {
   reader.onload = (e) => {
     try {
       const wb = XLSX.read(e.target.result, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      let rows;
+      if (sys === 'ad') {
+        // AD può avere più sheet (HQ, FIELD…) — uniscili tutti
+        rows = wb.SheetNames.flatMap(name =>
+          XLSX.utils.sheet_to_json(wb.Sheets[name], { defval: '' })
+        );
+      } else {
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      }
       RAW[sys] = rows;
       document.getElementById('st-' + sys).textContent = rows.length + ' righe';
       document.getElementById('fn-' + sys).textContent = file.name;
@@ -513,7 +536,7 @@ function loadFile(sys, input) {
 }
 
 function checkReady() {
-  const ok = RAW.prm && RAW.fox && RAW.snow;
+  const ok = RAW.prm && RAW.fox && RAW.snow && RAW.ad;
   document.getElementById('btn-analyze').disabled = !ok;
 }
 
@@ -524,7 +547,7 @@ const ALIASES = {
   email:      ['amplifon email','email','mail','email_address','primary_email','work_email','pec','user id','userid'],
   firstname:  ['first name','firstname','nome','given_name','nome_dipendente'],
   lastname:   ['last name','lastname','cognome','surname','family_name'],
-  fullname:   ['user_descr','name','full_name','display_name','nome_completo'],
+  fullname:   ['user_descr','name','full_name','display_name','nome_completo','nomeutente'],
   username:   ['username','user_name','login','loginname','samaccountname','user_id'],
   ad_domain:  ['ad domain','ad_domain','ad doman','uad','active_directory','dominio'],
   employee_id:['person number','employee_code','worker_id','emp_id','employee_id'],
@@ -565,6 +588,7 @@ function runAnalysis() {
   const prmH = Object.keys(RAW.prm[0] || {});
   const foxH = Object.keys(RAW.fox[0] || {});
   const snwH = Object.keys(RAW.snow[0] || {});
+  const adH  = Object.keys(RAW.ad[0]  || {});
 
   // build email index (FOX e Snow: ultima riga vince)
   function idx(rows, headers, emailKey) {
@@ -593,7 +617,7 @@ function runAnalysis() {
   const prmIdx = {};
   for (const [e, rows] of Object.entries(prmAllRows)) {
     const activeRows = rows.filter(r => String(r[prmColStatus] || '').trim().toUpperCase() === 'ACTIVE');
-    if (activeRows.length === 0) continue; // tutte INACTIVE → non presente
+    if (activeRows.length === 0) continue;
     const primary = activeRows.find(r => String(r[prmColPrimary] || '').trim() === 'Y');
     prmIdx[e] = primary || activeRows[0];
   }
@@ -601,11 +625,24 @@ function runAnalysis() {
   const foxIdx = idx(RAW.fox, foxH, 'email');
   const snwIdx = idx(RAW.snow, snwH, 'email');
 
-  const allEmails = [...new Set([...Object.keys(prmIdx), ...Object.keys(foxIdx), ...Object.keys(snwIdx)])].sort();
+  // AD index: keyed by email (UPN/Email col), only Stato='Abilitato'
+  const adColStatus = getCol(adH, 'status');
+  const adIdx = {};
+  RAW.ad.forEach(r => {
+    const stato = String(r[adColStatus] || '').toLowerCase();
+    if (stato && stato !== 'abilitato' && stato !== 'enabled' && stato !== 'true') return;
+    // try email col first, then UPN
+    const emailCol = getCol(adH, 'email');
+    const upnCol   = adH.find(h => h.toLowerCase().trim() === 'upn');
+    const e = normEmail(String(r[emailCol] || r[upnCol] || '').trim());
+    if (e) adIdx[e] = r;
+  });
+
+  const allEmails = [...new Set([...Object.keys(prmIdx), ...Object.keys(foxIdx), ...Object.keys(snwIdx), ...Object.keys(adIdx)])].sort();
 
   DATA = allEmails.map(e => {
-    const p = prmIdx[e], f = foxIdx[e], s = snwIdx[e];
-    const in_prm = !!p, in_fox = !!f, in_snow = !!s;
+    const p = prmIdx[e], f = foxIdx[e], s = snwIdx[e], a = adIdx[e];
+    const in_prm = !!p, in_fox = !!f, in_snow = !!s, in_ad = !!a;
     const sys_count = [in_prm, in_fox, in_snow].filter(Boolean).length;
 
     const name_prm = p ? (getVal(p, prmH, 'firstname') + ' ' + getVal(p, prmH, 'lastname')).trim() || getVal(p, prmH, 'fullname') : '';
@@ -622,8 +659,12 @@ function runAnalysis() {
 
     return {
       email: e, name, name_prm, name_fox, name_snow,
-      in_prm, in_fox, in_snow, sys_count,
+      in_prm, in_fox, in_snow, in_ad, sys_count,
       ad, ad_prm, ad_fox, ad_snow, ad_conflict,
+      upn_ad:     a ? String(a[adH.find(h => h.toLowerCase().trim() === 'upn')] || '').trim() : '',
+      status_ad:  a ? String(a[adColStatus] || '').trim() : '',
+      ou_ad:      a ? String(a[adH.find(h => h.toLowerCase().trim() === 'ouprovenienza')] || '').trim() : '',
+      date_ad:    a ? String(a[adH.find(h => h.toLowerCase().trim() === 'datacreazione')] || '').trim() : '',
       status_prm: p ? getVal(p, prmH, 'status') : '',
       status_fox: f ? getVal(f, foxH, 'status') : '',
       status_snow: s ? getVal(s, snwH, 'status') : '',
@@ -642,9 +683,10 @@ function runAnalysis() {
   document.getElementById('export-date').textContent = new Date().toLocaleDateString('it-IT');
 
   // update sidebar counts
-  document.getElementById('cnt-prm').textContent = RAW.prm.length;
-  document.getElementById('cnt-fox').textContent = RAW.fox.length;
+  document.getElementById('cnt-prm').textContent  = RAW.prm.length;
+  document.getElementById('cnt-fox').textContent  = RAW.fox.length;
   document.getElementById('cnt-snow').textContent = RAW.snow.length;
+  document.getElementById('cnt-ad').textContent   = RAW.ad.length;
   document.getElementById('cnt-total').textContent = DATA.length;
   const gaps = DATA.filter(r => r.sys_count === 1).length;
   document.getElementById('cnt-gaps').textContent = gaps;
@@ -679,14 +721,15 @@ function renderOverview() {
   const oCount = DATA.filter(r => r.in_prm).length;
   const fCount = DATA.filter(r => r.in_fox).length;
   const sCount = DATA.filter(r => r.in_snow).length;
+  const aCount = DATA.filter(r => r.in_ad).length;
 
   charts.bar = new Chart(document.getElementById('barChart'), {
     type: 'bar',
     data: {
-      labels: ['Oracle PRM', 'FOX', 'ServiceNow'],
+      labels: ['Oracle PRM', 'FOX', 'ServiceNow', 'Active Directory'],
       datasets: [{
-        data: [oCount, fCount, sCount],
-        backgroundColor: ['#C74634', '#1B5DAA', '#81B5A1'],
+        data: [oCount, fCount, sCount, aCount],
+        backgroundColor: ['#C74634', '#1B5DAA', '#81B5A1', '#2A7A5A'],
         borderRadius: 4, borderSkipped: false
       }]
     },
@@ -831,6 +874,7 @@ function renderMatchTable(rows) {
       data-prm="${r.in_prm?'1':'0'}"
       data-fox="${r.in_fox?'1':'0'}"
       data-snow="${r.in_snow?'1':'0'}"
+      data-ad="${r.in_ad?'1':'0'}"
       data-status="${(r.status_prm||'').toLowerCase()}"
       data-search="${(r.name+' '+r.email+' '+r.ad).toLowerCase()}">
       <td style="font-weight:500">${r.name||'–'}</td>
@@ -839,6 +883,7 @@ function renderMatchTable(rows) {
       <td style="text-align:center"><span class="sc ${r.in_prm?'sc-y':'sc-n'}">${r.in_prm?'✓':'–'}</span></td>
       <td style="text-align:center"><span class="sc ${r.in_fox?'sc-y':'sc-n'}">${r.in_fox?'✓':'–'}</span></td>
       <td style="text-align:center"><span class="sc ${r.in_snow?'sc-y':'sc-n'}">${r.in_snow?'✓':'–'}</span></td>
+      <td style="text-align:center"><span class="sc ${r.in_ad?'sc-y':'sc-n'}">${r.in_ad?'✓':'–'}</span></td>
       <td style="color:var(--muted);font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.job_title||'–'}</td>
       <td style="color:var(--muted);font-size:11px">${r.area||'–'}</td>
       <td><span class="badge ${cov[0]}">${cov[1]}</span></td>
@@ -890,10 +935,12 @@ function openDetail(email) {
   if (r.in_prm) badges.innerHTML += `<span class="badge b-prm">Oracle PRM</span> `;
   if (r.in_fox) badges.innerHTML += `<span class="badge b-fox">FOX</span> `;
   if (r.in_snow) badges.innerHTML += `<span class="badge b-snow">ServiceNow</span> `;
+  if (r.in_ad)  badges.innerHTML += `<span class="badge b-ad">Active Directory</span> `;
   const cov = r.sys_count === 3 ? '<span class="badge b-all">Tutti e 3</span>' : r.sys_count === 2 ? '<span class="badge b-2">2 sistemi</span>' : '<span class="badge b-1">1 sistema</span>';
   badges.innerHTML += cov;
 
   const grid = document.getElementById('p-grid');
+  grid.style.gridTemplateColumns = 'repeat(2,1fr)';
   grid.innerHTML = `
     <div class="panel-cell">
       <div class="pc-sys">Oracle PRM</div>
@@ -914,6 +961,14 @@ function openDetail(email) {
       ${r.ad_snow ? `<div class="pc-ad">AD: ${r.ad_snow}</div>` : ''}
       ${r.status_snow ? `<div class="pc-ad">Attivo: ${r.status_snow}</div>` : ''}
       ${r.start_snow ? `<div class="pc-ad">Dal: ${r.start_snow.toString().split('T')[0]}</div>` : ''}
+    </div>
+    <div class="panel-cell">
+      <div class="pc-sys">Active Directory</div>
+      <div class="pc-val">${r.in_ad ? '<span style="color:#7ACD96">✓ Presente</span>' : '<span style="color:var(--muted)">– Assente</span>'}</div>
+      ${r.upn_ad    ? `<div class="pc-ad">UPN: ${r.upn_ad}</div>` : ''}
+      ${r.status_ad ? `<div class="pc-ad">Stato: ${r.status_ad}</div>` : ''}
+      ${r.date_ad   ? `<div class="pc-ad">Creato: ${r.date_ad}</div>` : ''}
+      ${r.ou_ad     ? `<div class="pc-ad" style="font-size:9px;word-break:break-all">${r.ou_ad}</div>` : ''}
     </div>`;
 
   const detail = document.getElementById('p-detail');
