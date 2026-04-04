@@ -350,13 +350,15 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
         <option value="active">Attivo in PRM</option>
         <option value="inactive">Inattivo in PRM</option>
       </select>
+      <input type="date" class="fsel" id="f-date-from" oninput="applyFilters()" title="Start date da" style="color:var(--muted)">
+      <input type="date" class="fsel" id="f-date-to" oninput="applyFilters()" title="Start date a" style="color:var(--muted)">
       <button class="btn-reset" onclick="resetFilters()">✕ Reset</button>
       <span class="count-lbl" id="match-count">– utenti</span>
     </div>
     <div class="tbl-wrap">
       <table>
         <thead><tr>
-          <th>Nome</th>
+          <th onclick="sortTable('name')" style="cursor:pointer;user-select:none">Nome <span id="sort-name" style="color:var(--muted)">↕</span></th>
           <th>Email</th>
           <th>AD domain</th>
           <th style="text-align:center">PRM</th>
@@ -365,6 +367,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
           <th style="text-align:center">AD</th>
           <th>Ruolo</th>
           <th>Area</th>
+          <th onclick="sortTable('start_date')" style="cursor:pointer;user-select:none">Start Date <span id="sort-start_date" style="color:var(--muted)">↕</span></th>
           <th>Copertura</th>
         </tr></thead>
         <tbody id="match-body"></tbody>
@@ -876,7 +879,8 @@ function renderMatchTable(rows) {
       data-snow="${r.in_snow?'1':'0'}"
       data-ad="${r.in_ad?'1':'0'}"
       data-status="${(r.status_prm||'').toLowerCase()}"
-      data-search="${(r.name+' '+r.email+' '+r.ad).toLowerCase()}">
+      data-search="${(r.name+' '+r.email+' '+r.ad).toLowerCase()}"
+      data-start="${r.start_prm||''}">
       <td style="font-weight:500">${r.name||'–'}</td>
       <td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis">${r.email}</td>
       <td><code style="font-size:10px;color:var(--accent)">${r.ad||'–'}</code></td>
@@ -886,9 +890,60 @@ function renderMatchTable(rows) {
       <td style="text-align:center"><span class="sc ${r.in_ad?'sc-y':'sc-n'}">${r.in_ad?'✓':'–'}</span></td>
       <td style="color:var(--muted);font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.job_title||'–'}</td>
       <td style="color:var(--muted);font-size:11px">${r.area||'–'}</td>
+      <td style="color:var(--muted);font-size:11px;white-space:nowrap">${r.start_prm ? fmtDate(r.start_prm) : '–'}</td>
       <td><span class="badge ${cov[0]}">${cov[1]}</span></td>
     </tr>`;
   }).join('');
+}
+
+// ═══════════════════════════════════════════
+// SORT
+// ═══════════════════════════════════════════
+let sortState = { col: null, dir: 1 };
+
+function fmtDate(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  // già formato it-IT dd/mm/yyyy
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
+  const d = new Date(s);
+  if (isNaN(d)) return s;
+  return d.toLocaleDateString('it-IT');
+}
+
+function parseDateSort(v) {
+  if (!v) return 0;
+  const s = String(v).trim();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+    const [d,m,y] = s.split('/');
+    return new Date(`${y}-${m}-${d}`).getTime() || 0;
+  }
+  return new Date(s).getTime() || 0;
+}
+
+function sortTable(col) {
+  if (sortState.col === col) sortState.dir *= -1;
+  else { sortState.col = col; sortState.dir = 1; }
+
+  // update arrow indicators
+  ['name','start_date'].forEach(c => {
+    const el = document.getElementById('sort-'+c);
+    if (el) el.textContent = sortState.col === c ? (sortState.dir === 1 ? '↑' : '↓') : '↕';
+  });
+
+  const sorted = [...DATA].sort((a, b) => {
+    let va, vb;
+    if (col === 'start_date') {
+      va = parseDateSort(a.start_prm);
+      vb = parseDateSort(b.start_prm);
+      return (va - vb) * sortState.dir;
+    }
+    va = (a.name || '').toLowerCase();
+    vb = (b.name || '').toLowerCase();
+    return va < vb ? -sortState.dir : va > vb ? sortState.dir : 0;
+  });
+  renderMatchTable(sorted);
+  applyFilters();
 }
 
 // ═══════════════════════════════════════════
@@ -899,6 +954,8 @@ function applyFilters() {
   const cov = document.getElementById('f-cov')?.value || '';
   const sys = document.getElementById('f-sys')?.value || '';
   const st  = document.getElementById('f-status')?.value || '';
+  const dfrom = document.getElementById('f-date-from')?.value || '';
+  const dto   = document.getElementById('f-date-to')?.value || '';
 
   const rows = document.querySelectorAll('#match-body tr');
   let visible = 0;
@@ -907,7 +964,13 @@ function applyFilters() {
     const matchCov = !cov || tr.dataset.cov === cov;
     const matchSys = !sys || tr.dataset[sys] === '1';
     const matchSt  = !st  || (st === 'active' ? tr.dataset.status === 'active' : tr.dataset.status !== 'active' && tr.dataset.status !== '');
-    const show = matchQ && matchCov && matchSys && matchSt;
+    let matchDate = true;
+    if (dfrom || dto) {
+      const ts = parseDateSort(tr.dataset.start || '');
+      if (dfrom) { const f = new Date(dfrom).getTime(); if (!ts || ts < f) matchDate = false; }
+      if (dto && matchDate) { const t = new Date(dto).getTime() + 86399999; if (!ts || ts > t) matchDate = false; }
+    }
+    const show = matchQ && matchCov && matchSys && matchSt && matchDate;
     tr.style.display = show ? '' : 'none';
     if (show) visible++;
   });
@@ -916,6 +979,7 @@ function applyFilters() {
 
 function resetFilters() {
   ['f-cov','f-sys','f-status'].forEach(id => document.getElementById(id).value = '');
+  ['f-date-from','f-date-to'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('globalSearch').value = '';
   applyFilters();
 }

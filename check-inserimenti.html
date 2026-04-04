@@ -382,6 +382,8 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
       <select class="fsel" id="f-ra" onchange="applyFilters()">
         <option value="">Tutte le RA</option>
       </select>
+      <input type="date" class="fsel" id="f-date-from" oninput="applyFilters()" title="Data attivazione da" style="color:var(--muted)">
+      <input type="date" class="fsel" id="f-date-to" oninput="applyFilters()" title="Data attivazione a" style="color:var(--muted)">
       <button class="btn-sm" onclick="resetFilters()">✕ Reset</button>
       <span class="count-lbl" id="match-count">– utenti</span>
     </div>
@@ -391,9 +393,9 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
         <table>
           <thead><tr>
             <th>#</th>
-            <th>Cognome Nome</th>
+            <th onclick="sortResults('name')" style="cursor:pointer;user-select:none">Cognome Nome <span id="csort-name" style="color:var(--muted)">↕</span></th>
             <th>Email / Match</th>
-            <th>Data attivazione</th>
+            <th onclick="sortResults('date_act')" style="cursor:pointer;user-select:none">Data attivazione <span id="csort-date_act" style="color:var(--muted)">↕</span></th>
             <th style="text-align:center">Oracle PRM</th>
             <th style="text-align:center">FOX</th>
             <th style="text-align:center">ServiceNow</th>
@@ -1015,6 +1017,7 @@ function renderResultsTable(rows) {
         data-nohcm="${RAW.hcm && !r.in_hcm?'1':'0'}"
         data-noad="${RAW.ad && !r.in_ad?'1':'0'}"
         data-ra="${esc(r.ra_name)}"
+        data-dateact="${r.date_act||''}"
         data-search="${(r.name+' '+r.email+' '+r.ra_name).toLowerCase()}">
       <td style="color:var(--muted)">${r.idx}</td>
       <td style="font-weight:500">${r.name}</td>
@@ -1111,6 +1114,41 @@ function renderOkTable() {
 }
 
 // ═══════════════════════════════════════════
+// SORT
+// ═══════════════════════════════════════════
+let cSortState = { col: null, dir: 1 };
+
+function parseDateCheck(v) {
+  if (!v) return 0;
+  const s = String(v).trim();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+    const [d,m,y] = s.split('/');
+    return new Date(`${y}-${m}-${d}`).getTime() || 0;
+  }
+  return new Date(s).getTime() || 0;
+}
+
+function sortResults(col) {
+  if (cSortState.col === col) cSortState.dir *= -1;
+  else { cSortState.col = col; cSortState.dir = 1; }
+
+  ['name','date_act'].forEach(c => {
+    const el = document.getElementById('csort-'+c);
+    if (el) el.textContent = cSortState.col === c ? (cSortState.dir === 1 ? '↑' : '↓') : '↕';
+  });
+
+  RESULTS.sort((a, b) => {
+    if (col === 'date_act') {
+      return (parseDateCheck(a.date_act) - parseDateCheck(b.date_act)) * cSortState.dir;
+    }
+    const va = (a.name||'').toLowerCase(), vb = (b.name||'').toLowerCase();
+    return va < vb ? -cSortState.dir : va > vb ? cSortState.dir : 0;
+  });
+  renderResultsTable(RESULTS);
+  applyFilters();
+}
+
+// ═══════════════════════════════════════════
 // FILTERS
 // ═══════════════════════════════════════════
 function applyFilters() {
@@ -1118,6 +1156,8 @@ function applyFilters() {
   const st  = document.getElementById('f-status')?.value || '';
   const sys = document.getElementById('f-sys')?.value || '';
   const ra  = document.getElementById('f-ra')?.value || '';
+  const dfrom = document.getElementById('f-date-from')?.value || '';
+  const dto   = document.getElementById('f-date-to')?.value || '';
 
   const rows = document.querySelectorAll('#results-body tr');
   let visible = 0;
@@ -1126,7 +1166,13 @@ function applyFilters() {
     const matchSt = !st || tr.dataset.status === st;
     const matchSys = !sys || tr.dataset[sys] === '1';
     const matchRa = !ra || tr.dataset.ra === ra;
-    const show = matchQ && matchSt && matchSys && matchRa;
+    let matchDate = true;
+    if (dfrom || dto) {
+      const ts = parseDateCheck(tr.dataset.dateact || '');
+      if (dfrom) { const f = new Date(dfrom).getTime(); if (!ts || ts < f) matchDate = false; }
+      if (dto && matchDate) { const t = new Date(dto).getTime() + 86399999; if (!ts || ts > t) matchDate = false; }
+    }
+    const show = matchQ && matchSt && matchSys && matchRa && matchDate;
     tr.style.display = show ? '' : 'none';
     if (show) visible++;
   });
@@ -1135,6 +1181,7 @@ function applyFilters() {
 
 function resetFilters() {
   ['f-status','f-sys','f-ra'].forEach(id => document.getElementById(id).value = '');
+  ['f-date-from','f-date-to'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('globalSearch').value = '';
   applyFilters();
 }
