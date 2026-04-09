@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FOX Timing · Propagazione Utenti</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --oracle:#C74634;--fox:#1B5DAA;--ra-col:#E8A23A;
+  --bg:#0D0F0E;--bg2:#141716;--bg3:#1C1F1E;
+  --border:rgba(255,255,255,0.07);--border-hi:rgba(255,255,255,0.15);
+  --text:#E8EAE9;--muted:#6B7370;--accent:#81B5A1;
+  --warn:#F0BE6A;--danger:#E8856E;--ok:#7ACD96;
+  --font-d:'Syne',sans-serif;--font-m:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font-m);font-size:14px;line-height:1.6;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(129,181,161,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(129,181,161,0.025) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+.wrap{max-width:1200px;margin:0 auto;padding:0 2rem;position:relative;z-index:1}
+nav{position:fixed;top:0;left:0;right:0;height:52px;background:rgba(13,15,14,0.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);z-index:100;display:flex;align-items:center}
+.nav-i{display:flex;align-items:center;justify-content:space-between;width:100%}
+.logo{font-family:var(--font-d);font-weight:700;font-size:15px;letter-spacing:-0.02em;display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text)}
+.logo-m{width:26px;height:26px;border:1.5px solid var(--accent);border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--accent)}
+.nav-links{display:flex;align-items:center;gap:24px;list-style:none}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:12px;letter-spacing:0.05em;text-transform:uppercase;transition:color .15s}
+.nav-links a:hover,.nav-links a.active{color:var(--text)}
+.hdr{padding:100px 0 40px;border-bottom:1px solid var(--border)}
+.eyebrow{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:'';display:block;width:32px;height:1px;background:var(--accent)}
+.hdr h1{font-family:var(--font-d);font-size:clamp(32px,5vw,58px);font-weight:800;line-height:.95;letter-spacing:-.03em;margin-bottom:16px}
+.hdr h1 em{font-style:normal;color:transparent;-webkit-text-stroke:1px rgba(129,181,161,0.5)}
+.hdr p{color:var(--muted);font-size:13px;line-height:1.85;max-width:620px}
+.hdr p strong{color:var(--text);font-weight:500}
+.flow-pill{display:inline-flex;align-items:center;gap:0;margin-top:22px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;overflow:hidden;font-size:11px}
+.fp-step{padding:7px 14px;display:flex;align-items:center;gap:6px}
+.fp-step:not(:last-child){border-right:1px solid var(--border)}
+.fp-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.fp-arr{color:var(--muted);font-size:10px;padding:0 4px;background:var(--bg2)}
+.upload-s{padding:32px 0 24px}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.ucard{background:var(--bg2);padding:24px 22px 20px}
+.ucard-label{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.ucard-ico{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-weight:700;font-size:12px;flex-shrink:0;border:1px solid}
+.ucard-name{font-family:var(--font-d);font-weight:600;font-size:13px}
+.ucard-desc{font-size:10px;color:var(--muted);margin-top:1px}
+.dropzone{border:1px dashed var(--border-hi);border-radius:6px;padding:22px 14px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.dropzone:hover,.dropzone.drag{border-color:var(--accent);background:rgba(129,181,161,.04)}
+.dropzone.drag-ra{border-color:var(--ra-col)!important;background:rgba(232,162,58,.04)!important}
+.dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.dz-icon{font-size:20px;margin-bottom:6px;opacity:.4}
+.dz-txt{font-size:11px;color:var(--muted);line-height:1.6}
+.dz-txt strong{color:var(--text);font-weight:400}
+.dz-status{display:none;align-items:center;gap:8px;padding:8px 11px;background:rgba(129,181,161,.07);border:1px solid rgba(129,181,161,.2);border-radius:4px;margin-top:10px;font-size:10px}
+.dz-status.show{display:flex}
+.dz-status.ra-s{background:rgba(232,162,58,.07);border-color:rgba(232,162,58,.25)}
+.dz-status .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.dz-status.ra-s .dot{background:var(--ra-col)}
+.dz-clear{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:10px;font-family:var(--font-m);padding:1px 5px;border-radius:3px}
+.dz-clear:hover{color:var(--danger)}
+.run-bar{display:flex;align-items:center;gap:14px;padding:18px 0}
+.btn-run{display:inline-flex;align-items:center;gap:8px;padding:10px 24px;border-radius:4px;font-family:var(--font-m);font-size:12px;background:var(--accent);color:var(--bg);border:none;cursor:pointer;transition:all .15s}
+.btn-run:hover:not(:disabled){background:#9ECFBB;transform:translateY(-1px)}
+.btn-run:disabled{opacity:.35;cursor:not-allowed}
+.run-hint{font-size:11px;color:var(--muted)}
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:22px}
+.kpi{background:var(--bg2);padding:16px 18px}
+.kpi-val{font-family:var(--font-d);font-size:24px;font-weight:700;letter-spacing:-.03em;line-height:1}
+.kpi-lbl{font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:.04em;text-transform:uppercase;line-height:1.4}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.sw{position:relative;flex:1;min-width:180px}
+.sw input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:7px 10px 7px 30px;font-family:var(--font-m);font-size:11.5px;color:var(--text);outline:none;transition:border .15s}
+.sw input:focus{border-color:var(--accent)}
+.sw::before{content:'⌕';position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+.fsel{background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:7px 10px;font-family:var(--font-m);font-size:11px;color:var(--text);outline:none;cursor:pointer}
+.fsel:focus{border-color:var(--accent)}
+.fbtn{padding:7px 12px;border-radius:4px;font-family:var(--font-m);font-size:11px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+.fbtn.active{border-color:var(--warn);color:var(--warn);background:rgba(240,190,106,.06)}
+.ebtn{padding:7px 12px;border-radius:4px;font-family:var(--font-m);font-size:11px;border:1px solid var(--border-hi);background:transparent;color:var(--text);cursor:pointer;transition:all .15s;margin-left:auto}
+.ebtn:hover{border-color:var(--accent);color:var(--accent)}
+.tbl-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:22px}
+.tbl-head{padding:11px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted)}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+thead th{background:var(--bg3);padding:8px 13px;text-align:left;font-size:10px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);font-weight:400;white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s}
+thead th:hover{color:var(--text)}
+thead th.sa::after{content:' ↑'}
+thead th.sd::after{content:' ↓'}
+tbody tr{border-bottom:1px solid var(--border)}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover td{background:rgba(255,255,255,.02)}
+td{padding:8px 13px;vertical-align:middle;white-space:nowrap}
+td.cw{white-space:normal;min-width:130px}
+.b{display:inline-block;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:500}
+.b-ok{background:rgba(122,205,150,.12);color:var(--ok)}
+.b-w{background:rgba(240,190,106,.12);color:var(--warn)}
+.b-d{background:rgba(232,133,110,.12);color:var(--danger)}
+.b-m{background:rgba(107,115,112,.1);color:var(--muted)}
+.b-neg{background:rgba(123,79,191,.12);color:#B08ADF}
+.dbar{display:flex;align-items:center;gap:8px}
+.dnum{min-width:60px}
+.dbg{flex:1;height:4px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;min-width:48px}
+.dbf{height:100%;border-radius:2px}
+.pgn{display:flex;align-items:center;gap:6px;padding:14px 0;font-size:11px;color:var(--muted)}
+.pb{padding:4px 9px;border-radius:3px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-family:var(--font-m);font-size:11px;transition:all .15s}
+.pb:hover:not(:disabled){border-color:var(--border-hi);color:var(--text)}
+.pb:disabled{opacity:.3;cursor:not-allowed}
+.pb.cur{border-color:var(--accent);color:var(--accent)}
+.pi{margin-left:auto;font-size:10px}
+.ut{display:flex;align-items:center;gap:10px;cursor:pointer;padding:11px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;font-size:12px;margin-bottom:1px;transition:background .15s;user-select:none}
+.ut:hover{background:var(--bg3)}
+.ut .arr{transition:transform .2s;font-size:10px;color:var(--muted)}
+.ut.open .arr{transform:rotate(90deg)}
+.ub{display:none;background:var(--bg2);border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px}
+.ub.show{display:block}
+.us{margin-bottom:28px}
+.empty{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty h3{font-family:var(--font-d);font-weight:600;font-size:15px;color:var(--text);margin-bottom:6px}
+.empty p{font-size:12px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(129,181,161,.2);border-top-color:var(--accent);border-radius:50%;animation:sp .6s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+footer{border-top:1px solid var(--border);padding:26px 0}
+.fi{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted)}
+.fl{display:flex;gap:20px}
+.fl a{color:var(--muted);text-decoration:none;transition:color .15s}
+.fl a:hover{color:var(--text)}
+#results{padding:28px 0 0;display:none}
+#results.show{display:block}
+@media(max-width:800px){.upload-grid{grid-template-columns:1fr}}
+@media(max-width:900px){.kpi-strip{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.nav-links{display:none}.fi{flex-direction:column;gap:10px}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-i">
+    <a class="logo" href="index.html"><div class="logo-m">A</div>Amplifon IT</a>
+    <ul class="nav-links">
+      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="check-inserimenti.html">Check Inserimenti</a></li>
+      <li><a href="fox-timing.html" class="active">FOX Timing</a></li>
+    </ul>
+  </div>
+</nav>
+
+<div class="wrap">
+  <div class="hdr">
+    <div class="eyebrow">KPI · Propagazione</div>
+    <h1>FOX <em>Timing</em></h1>
+    <p>Per ogni inserimento nel file <strong>Regional / HR</strong>, risale allutente su <strong>Oracle PRM</strong> (cognome+nome) per ottenere AD Domain e Shop Code, poi verifica quando lutenza e scesa in <strong>FOX</strong>. Il delta e <strong>DT_UPDATE FOX &amp;minus; Data attivazione RA</strong>.</p>
+    <div class="flow-pill">
+      <div class="fp-step"><span class="fp-dot" style="background:var(--ra-col)"></span>RA / HR</div>
+      <div class="fp-arr">&#8594;</div>
+      <div class="fp-step"><span class="fp-dot" style="background:#E8856E"></span>Oracle PRM</div>
+      <div class="fp-arr">&#8594;</div>
+      <div class="fp-step"><span class="fp-dot" style="background:#7AABDF"></span>FOX shop_access</div>
+      <div class="fp-arr">&#8594;</div>
+      <div class="fp-step"><span class="fp-dot" style="background:var(--accent)"></span>&#916; giorni</div>
+    </div>
+  </div>
+
+  <div class="upload-s">
+    <div class="upload-grid">
+      <div class="ucard">
+        <div class="ucard-label">
+          <div class="ucard-ico" style="border-color:rgba(232,162,58,.4);background:rgba(232,162,58,.1);color:var(--ra-col)">RA</div>
+          <div>
+            <div class="ucard-name">Inserimenti Regional / HR</div>
+            <div class="ucard-desc">File compilato da Regional Assistant o HR</div>
+          </div>
+        </div>
+        <div class="dropzone" id="dz-ra">
+          <input type="file" accept=".xlsx,.xls,.csv" id="input-ra">
+          <div class="dz-icon">&#8679;</div>
+          <div class="dz-txt"><strong>Carica file RA / HR</strong><br>cognome, nome, shop, data attivazione</div>
+        </div>
+        <div class="dz-status ra-s" id="status-ra"><span class="dot"></span><span id="status-ra-txt"></span><button class="dz-clear" onclick="clearFile('ra')">&#10005;</button></div>
+      </div>
+      <div class="ucard">
+        <div class="ucard-label">
+          <div class="ucard-ico" style="border-color:rgba(199,70,52,.4);background:rgba(199,70,52,.1);color:#E8856E">PRM</div>
+          <div>
+            <div class="ucard-name">Oracle PRM Export</div>
+            <div class="ucard-desc">PRM_Person_Masterdata_Report_*.xlsx</div>
+          </div>
+        </div>
+        <div class="dropzone" id="dz-prm">
+          <input type="file" accept=".xlsx,.xls,.csv" id="input-prm">
+          <div class="dz-icon">&#8679;</div>
+          <div class="dz-txt"><strong>Carica file PRM</strong><br>xlsx / csv</div>
+        </div>
+        <div class="dz-status" id="status-prm"><span class="dot"></span><span id="status-prm-txt"></span><button class="dz-clear" onclick="clearFile('prm')">&#10005;</button></div>
+      </div>
+      <div class="ucard">
+        <div class="ucard-label">
+          <div class="ucard-ico" style="border-color:rgba(27,93,170,.4);background:rgba(27,93,170,.1);color:#7AABDF">FOX</div>
+          <div>
+            <div class="ucard-name">FOX Shop Access Export</div>
+            <div class="ucard-desc">shop_access.xlsx</div>
+          </div>
+        </div>
+        <div class="dropzone" id="dz-fox">
+          <input type="file" accept=".xlsx,.xls,.csv" id="input-fox">
+          <div class="dz-icon">&#8679;</div>
+          <div class="dz-txt"><strong>Carica file FOX</strong><br>xlsx / csv</div>
+        </div>
+        <div class="dz-status" id="status-fox"><span class="dot"></span><span id="status-fox-txt"></span><button class="dz-clear" onclick="clearFile('fox')">&#10005;</button></div>
+      </div>
+    </div>
+    <div class="run-bar">
+      <button class="btn-run" id="btn-run" disabled onclick="runAnalysis()"><span id="btn-icon">&#9654;</span> Analizza</button>
+      <span class="run-hint" id="run-hint">Carica tutti e 3 i file per procedere</span>
+    </div>
+  </div>
+
+  <div id="results">
+    <div class="kpi-strip">
+      <div class="kpi"><div class="kpi-val" id="k-ra" style="color:var(--ra-col)">&#8212;</div><div class="kpi-lbl">Inserimenti RA</div></div>
+      <div class="kpi"><div class="kpi-val" id="k-matched" style="color:var(--text)">&#8212;</div><div class="kpi-lbl">Trovati in FOX</div></div>
+      <div class="kpi"><div class="kpi-val" id="k-avg" style="color:var(--accent)">&#8212;</div><div class="kpi-lbl">Giorni medi</div></div>
+      <div class="kpi"><div class="kpi-val" id="k-median" style="color:var(--accent)">&#8212;</div><div class="kpi-lbl">Giorni mediani</div></div>
+      <div class="kpi"><div class="kpi-val" id="k-sla" style="color:var(--warn)">&#8212;</div><div class="kpi-lbl">Oltre 7 giorni</div></div>
+    </div>
+
+    <div class="filters">
+      <div class="sw"><input type="text" id="srch" placeholder="Cerca nome, utente, shop, region..." oninput="applyFilters()"></div>
+      <select class="fsel" id="fil-region" onchange="applyFilters()"><option value="">Tutte le region</option></select>
+      <select class="fsel" id="fil-ra" onchange="applyFilters()"><option value="">Tutti gli inseritori</option></select>
+      <select class="fsel" id="fil-range" onchange="applyFilters()">
+        <option value="">Tutti i delta</option>
+        <option value="0">0 giorni</option>
+        <option value="1-3">1-3 giorni</option>
+        <option value="4-7">4-7 giorni</option>
+        <option value="8-14">8-14 giorni</option>
+        <option value="15+">15+ giorni</option>
+      </select>
+      <button class="fbtn" id="fil-sla" onclick="toggleSLA()">&#9888; Solo SLA violate</button>
+      <button class="ebtn" onclick="exportCSV()">&#8595; CSV</button>
+    </div>
+
+    <div class="tbl-wrap">
+      <div class="tbl-head"><span id="tbl-count">&#8212;</span></div>
+      <div class="tbl-scroll">
+        <table id="main-table">
+          <thead>
+            <tr>
+              <th onclick="sortBy('nome')" data-col="nome">Nominativo</th>
+              <th onclick="sortBy('user')" data-col="user">Utente AD</th>
+              <th onclick="sortBy('shop')" data-col="shop">Shop</th>
+              <th onclick="sortBy('region')" data-col="region">Region</th>
+              <th onclick="sortBy('raName')" data-col="raName">Inserito da</th>
+              <th onclick="sortBy('startDate')" data-col="startDate">Data attivazione RA</th>
+              <th onclick="sortBy('foxUpdate')" data-col="foxUpdate">DT_UPDATE FOX</th>
+              <th onclick="sortBy('delta')" data-col="delta" class="sa">&#916; Giorni</th>
+              <th>SLA</th>
+            </tr>
+          </thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="pgn" id="pgn"></div>
+
+    <div class="us" id="notfox-s" style="display:none">
+      <div class="ut" id="notfox-toggle" onclick="toggleSection('notfox')">
+        <span class="arr">&#9658;</span>
+        <span style="font-family:var(--font-d);font-weight:600">Non ancora in FOX</span>
+        <span style="color:var(--muted);font-size:11px">&#8212; presenti in PRM ma non trovati in shop_access</span>
+        <span class="b b-m" id="notfox-count" style="margin-left:auto">0</span>
+      </div>
+      <div class="ub" id="notfox-body">
+        <div class="tbl-scroll">
+          <table><thead><tr><th>Nominativo</th><th>Utente AD</th><th>Shop</th><th>Region</th><th>Inserito da</th><th>Data attivazione RA</th></tr></thead>
+          <tbody id="notfox-rows"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <div class="us" id="notprm-s" style="display:none">
+      <div class="ut" id="notprm-toggle" onclick="toggleSection('notprm')">
+        <span class="arr">&#9658;</span>
+        <span style="font-family:var(--font-d);font-weight:600">Non trovati in PRM</span>
+        <span style="color:var(--muted);font-size:11px">&#8212; nel file RA ma nessun match su cognome+nome</span>
+        <span class="b b-d" id="notprm-count" style="margin-left:auto">0</span>
+      </div>
+      <div class="ub" id="notprm-body">
+        <div class="tbl-scroll">
+          <table><thead><tr><th>Cognome Nome (RA)</th><th>Shop (RA)</th><th>Data attivazione</th><th>Inserito da</th></tr></thead>
+          <tbody id="notprm-rows"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="fi">
+      <div>&#169; Amplifon IT &middot; FOX Timing &middot; <span id="yr"></span></div>
+      <div class="fl">
+        <a href="index.html">Home</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="check-inserimenti.html">Check Inserimenti</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+const RAW = { ra: null, prm: null, fox: null };
+const state = {
+  matched: [], notFox: [], notPrm: [],
+  filtered: [],
+  sort: { col: 'delta', dir: 'asc' },
+  slaOnly: false,
+  page: 1, pageSize: 50,
+};
+
+function norm(s) {
+  return String(s || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function findCol(headers) {
+  const names = Array.prototype.slice.call(arguments, 1);
+  for (var i = 0; i < headers.length; i++) {
+    var hn = headers[i].toLowerCase().trim();
+    for (var j = 0; j < names.length; j++) {
+      if (hn === names[j].toLowerCase().trim()) return headers[i];
+    }
+  }
+  for (var i = 0; i < headers.length; i++) {
+    var hn = headers[i].toLowerCase().trim();
+    for (var j = 0; j < names.length; j++) {
+      if (hn.startsWith(names[j].toLowerCase().trim())) return headers[i];
+    }
+  }
+  return null;
+}
+
+function colVal(row, col) {
+  if (!col || !row) return '';
+  var v = row[col];
+  return (v === undefined || v === null) ? '' : String(v).trim();
+}
+
+function parseDate(val) {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  if (typeof val === 'string') {
+    var m1 = val.match(/^(\d{2})-(\d{2})-(\d{4})/);
+    if (m1) return new Date(+m1[3], +m1[2]-1, +m1[1]);
+    var m2 = val.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m2) return new Date(+m2[1], +m2[2]-1, +m2[3]);
+    var m3 = val.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (m3) return new Date(+m3[3], +m3[2]-1, +m3[1]);
+  }
+  if (typeof val === 'number') return new Date(Math.round((val - 25569) * 86400 * 1000));
+  var d = new Date(val);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function daysBetween(a, b) {
+  if (!a || !b) return null;
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+}
+
+function fmtDate(d) {
+  if (!d) return '<span style="color:var(--muted)">&#8212;</span>';
+  return d.toLocaleDateString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+function normShop(v) {
+  return String(v || '').trim().replace(/^0+/, '');
+}
+
+function setupDZ(dzId, inputId, key) {
+  var dz = document.getElementById(dzId);
+  var inp = document.getElementById(inputId);
+  inp.addEventListener('change', function() { if (inp.files[0]) loadFile(key, inp.files[0]); });
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add(key==='ra'?'drag-ra':'drag'); });
+  dz.addEventListener('dragleave', function() { dz.classList.remove('drag','drag-ra'); });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault(); dz.classList.remove('drag','drag-ra');
+    if (e.dataTransfer.files[0]) loadFile(key, e.dataTransfer.files[0]);
+  });
+}
+
+function loadFile(key, file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var wb = XLSX.read(new Uint8Array(e.target.result), { type:'array', cellDates:true });
+      var ws = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
+      RAW[key] = rows;
+      document.getElementById('status-'+key+'-txt').textContent = rows.length + ' righe \u00b7 ' + file.name;
+      document.getElementById('status-'+key).classList.add('show');
+      checkReady();
+    } catch(err) {
+      document.getElementById('status-'+key+'-txt').textContent = 'Errore lettura';
+      document.getElementById('status-'+key).classList.add('show');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function clearFile(key) {
+  RAW[key] = null;
+  document.getElementById('status-'+key).classList.remove('show');
+  document.getElementById('input-'+key).value = '';
+  checkReady();
+}
+
+function checkReady() {
+  var ok = RAW.ra && RAW.prm && RAW.fox;
+  document.getElementById('btn-run').disabled = !ok;
+  var missing = ['ra','prm','fox'].filter(function(k){ return !RAW[k]; }).map(function(k){ return k.toUpperCase(); });
+  document.getElementById('run-hint').textContent = ok ? 'Tutti i file caricati. Pronto per l\'analisi.' : 'In attesa: ' + missing.join(', ');
+}
+
+setupDZ('dz-ra','input-ra','ra');
+setupDZ('dz-prm','input-prm','prm');
+setupDZ('dz-fox','input-fox','fox');
+
+function runAnalysis() {
+  document.getElementById('btn-icon').innerHTML = '<span class="spin"></span>';
+  document.getElementById('btn-run').disabled = true;
+  setTimeout(function() {
+    try { doAnalysis(); }
+    finally { document.getElementById('btn-icon').textContent = '\u25BA'; document.getElementById('btn-run').disabled = false; }
+  }, 50);
+}
+
+function doAnalysis() {
+  var raRows = RAW.ra, prmRows = RAW.prm, foxRows = RAW.fox;
+
+  var raH = Object.keys(raRows[0] || {});
+  var raColLast  = findCol(raH, 'cognome');
+  var raColFirst = findCol(raH, 'nome');
+  var raColShop  = findCol(raH, 'Codice negozio/negozi assegnati', 'codice negozio', 'shop code', 'shop');
+  var raColDate  = findCol(raH, 'Data attivazione', 'data attivazione', 'data');
+  var raColRA    = findCol(raH, 'Inserito da', 'inserito da', 'regional', 'ra');
+
+  var prmH = Object.keys(prmRows[0] || {});
+  var prmColLast  = findCol(prmH, 'LAST NAME', 'last name', 'lastname', 'cognome');
+  var prmColFirst = findCol(prmH, 'FIRST NAME', 'first name', 'firstname', 'nome');
+  var prmColAD    = findCol(prmH, 'AD DOMAIN', 'ad domain', 'ad_domain');
+  var prmColShop  = findCol(prmH, 'SHOP CODE', 'shop code', 'shop_code');
+  var prmColStart = findCol(prmH, 'START DATE', 'start date', 'start_date');
+  var prmColReg   = findCol(prmH, 'REGION DESCRIPTION', 'region description', 'region_description');
+  var prmColShopD = findCol(prmH, 'SHOP DESCRIPTION', 'shop description');
+
+  var foxH = Object.keys(foxRows[0] || {});
+  var foxColUser = findCol(foxH, 'USER_NAME', 'user_name', 'username');
+  var foxColShop = findCol(foxH, 'ACCESS_CODE', 'access_code', 'shop');
+  var foxColUpd  = findCol(foxH, 'DT_UPDATE', 'dt_update');
+
+  // Indice PRM: cognome+nome -> [righe]
+  var prmByName = {};
+  for (var i = 0; i < prmRows.length; i++) {
+    var r = prmRows[i];
+    var k = norm(colVal(r, prmColLast)) + norm(colVal(r, prmColFirst));
+    if (!k) continue;
+    if (!prmByName[k]) prmByName[k] = [];
+    prmByName[k].push(r);
+  }
+
+  // Indice FOX: user+shop -> riga
+  var foxIdx = {};
+  for (var i = 0; i < foxRows.length; i++) {
+    var r = foxRows[i];
+    var user = norm(colVal(r, foxColUser));
+    var shop = normShop(colVal(r, foxColShop));
+    if (!user || !shop) continue;
+    var k = user + '||' + shop;
+    if (!foxIdx[k]) foxIdx[k] = r;
+  }
+
+  var matched = [], notFox = [], notPrm = [];
+  var regions = {}, raNames = {};
+
+  // Deduplica RA per cognome+nome+shop
+  var raDedup = {};
+  for (var i = 0; i < raRows.length; i++) {
+    var r = raRows[i];
+    var ln = colVal(r, raColLast), fn = colVal(r, raColFirst);
+    if (!ln && !fn) continue;
+    var k = norm(ln) + norm(fn) + normShop(colVal(r, raColShop));
+    if (!raDedup[k]) raDedup[k] = r;
+  }
+
+  var raKeys = Object.keys(raDedup);
+  for (var idx = 0; idx < raKeys.length; idx++) {
+    var r = raDedup[raKeys[idx]];
+    var ln = colVal(r, raColLast), fn = colVal(r, raColFirst);
+    var nameKey = norm(ln) + norm(fn);
+    var raShop  = normShop(colVal(r, raColShop));
+    var raDateAct = parseDate(colVal(r, raColDate));
+    var raName  = colVal(r, raColRA);
+    var nomeCognome = (ln + ' ' + fn).trim();
+
+    if (raName) raNames[raName] = 1;
+
+    var prmMatches = prmByName[nameKey] || [];
+    if (prmMatches.length === 0) {
+      notPrm.push({ nome: nomeCognome, shop: raShop, dateAct: raDateAct, raName: raName });
+      continue;
+    }
+
+    var prmFiltered = raShop ? prmMatches.filter(function(p){ return normShop(colVal(p, prmColShop)) === raShop; }) : prmMatches;
+    var prmSet = prmFiltered.length > 0 ? prmFiltered : prmMatches;
+
+    for (var pi = 0; pi < prmSet.length; pi++) {
+      var pm = prmSet[pi];
+      var adUser  = norm(colVal(pm, prmColAD));
+      var prmShop = normShop(colVal(pm, prmColShop));
+      var startDate = parseDate(colVal(pm, prmColStart));
+      var region   = colVal(pm, prmColReg);
+      var shopDesc = colVal(pm, prmColShopD);
+      if (region) regions[region] = 1;
+
+      var foxKey = adUser + '||' + prmShop;
+      var foxRow = foxIdx[foxKey];
+
+      if (foxRow) {
+        var foxUpdate = parseDate(colVal(foxRow, foxColUpd));
+        var delta = daysBetween(raDateAct, foxUpdate);
+        matched.push({ nome:nomeCognome, user:colVal(pm,prmColAD), shop:prmShop, shopDesc:shopDesc, region:region, raName:raName, startDate:raDateAct, foxUpdate:foxUpdate, delta:delta });
+      } else {
+        notFox.push({ nome:nomeCognome, user:colVal(pm,prmColAD), shop:prmShop, shopDesc:shopDesc, region:region, raName:raName, startDate:raDateAct });
+      }
+    }
+  }
+
+  state.matched = matched; state.notFox = notFox; state.notPrm = notPrm;
+
+  // KPI (solo delta >= 0 per media/mediana)
+  var deltas = matched.filter(function(r){ return r.delta !== null && r.delta >= 0; }).map(function(r){ return r.delta; });
+  var avg = deltas.length ? (deltas.reduce(function(a,b){return a+b;},0)/deltas.length).toFixed(1) : '&#8212;';
+  var sorted = deltas.slice().sort(function(a,b){return a-b;});
+  var median = sorted.length ? sorted[Math.floor(sorted.length/2)] : '&#8212;';
+  var slaViol = deltas.filter(function(d){ return d > 7; }).length;
+  var slaStr = deltas.length ? slaViol + ' (' + Math.round(slaViol/deltas.length*100) + '%)' : '&#8212;';
+
+  document.getElementById('k-ra').textContent      = raKeys.length;
+  document.getElementById('k-matched').textContent = matched.length;
+  document.getElementById('k-avg').textContent     = avg !== '&#8212;' ? avg + 'g' : avg;
+  document.getElementById('k-median').textContent  = median !== '&#8212;' ? median + 'g' : median;
+  document.getElementById('k-sla').textContent     = slaStr;
+
+  var selReg = document.getElementById('fil-region');
+  selReg.innerHTML = '<option value="">Tutte le region</option>';
+  Object.keys(regions).sort().forEach(function(r){ selReg.innerHTML += '<option value="'+r+'">'+r+'</option>'; });
+
+  var selRA = document.getElementById('fil-ra');
+  selRA.innerHTML = '<option value="">Tutti gli inseritori</option>';
+  Object.keys(raNames).sort().forEach(function(r){ selRA.innerHTML += '<option value="'+r+'">'+r+'</option>'; });
+
+  if (notFox.length) {
+    document.getElementById('notfox-s').style.display = '';
+    document.getElementById('notfox-count').textContent = notFox.length;
+    document.getElementById('notfox-rows').innerHTML = notFox.map(function(r){
+      return '<tr><td class="cw">'+r.nome+'</td><td style="font-size:10px;color:var(--muted)">'+r.user+'</td><td>'+r.shop+(r.shopDesc?'<span style="color:var(--muted);font-size:10px;display:block">'+r.shopDesc+'</span>':'')+'</td><td style="font-size:10.5px">'+r.region+'</td><td style="font-size:10.5px;color:var(--muted)">'+r.raName+'</td><td>'+fmtDate(r.startDate)+'</td></tr>';
+    }).join('');
+  }
+  if (notPrm.length) {
+    document.getElementById('notprm-s').style.display = '';
+    document.getElementById('notprm-count').textContent = notPrm.length;
+    document.getElementById('notprm-rows').innerHTML = notPrm.map(function(r){
+      return '<tr><td class="cw">'+r.nome+'</td><td>'+r.shop+'</td><td>'+fmtDate(r.dateAct)+'</td><td style="color:var(--muted)">'+r.raName+'</td></tr>';
+    }).join('');
+  }
+
+  applyFilters();
+  document.getElementById('results').classList.add('show');
+  document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function applyFilters() {
+  var q      = document.getElementById('srch').value.toLowerCase();
+  var region = document.getElementById('fil-region').value;
+  var raName = document.getElementById('fil-ra').value;
+  var range  = document.getElementById('fil-range').value;
+
+  var rows = state.matched.filter(function(r) {
+    if (q && !(r.nome+' '+r.user+' '+r.shop+' '+r.shopDesc+' '+r.region+' '+r.raName).toLowerCase().includes(q)) return false;
+    if (region && r.region !== region) return false;
+    if (raName && r.raName !== raName) return false;
+    if (state.slaOnly && (r.delta === null || r.delta <= 7)) return false;
+    if (range) {
+      var d = r.delta;
+      if (d === null || d < 0) return false;
+      if (range==='0'   && d!==0)      return false;
+      if (range==='1-3' && (d<1||d>3)) return false;
+      if (range==='4-7' && (d<4||d>7)) return false;
+      if (range==='8-14'&& (d<8||d>14))return false;
+      if (range==='15+' && d<15)       return false;
+    }
+    return true;
+  });
+
+  var col = state.sort.col, dir = state.sort.dir;
+  rows.sort(function(a,b){
+    var va = a[col], vb = b[col];
+    if (va===null||va===undefined) va = dir==='asc'?Infinity:-Infinity;
+    if (vb===null||vb===undefined) vb = dir==='asc'?Infinity:-Infinity;
+    if (va instanceof Date) va = va.getTime();
+    if (vb instanceof Date) vb = vb.getTime();
+    if (typeof va==='string') return dir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+    return dir==='asc'?va-vb:vb-va;
+  });
+
+  state.filtered = rows; state.page = 1;
+  renderTable();
+}
+
+function sortBy(col) {
+  if (state.sort.col===col) state.sort.dir = state.sort.dir==='asc'?'desc':'asc';
+  else { state.sort.col=col; state.sort.dir='asc'; }
+  document.querySelectorAll('thead th').forEach(function(th){
+    th.classList.remove('sa','sd');
+    if (th.dataset.col===col) th.classList.add(state.sort.dir==='asc'?'sa':'sd');
+  });
+  applyFilters();
+}
+
+function toggleSLA() {
+  state.slaOnly = !state.slaOnly;
+  document.getElementById('fil-sla').classList.toggle('active', state.slaOnly);
+  applyFilters();
+}
+
+function deltaBadge(d) {
+  if (d===null) return '<span class="b b-m">N/D</span>';
+  if (d<0)  return '<span class="b b-neg">'+d+'g</span>';
+  if (d===0) return '<span class="b b-ok">stesso giorno</span>';
+  if (d<=3)  return '<span class="b b-ok">'+d+'g</span>';
+  if (d<=7)  return '<span class="b b-w">'+d+'g</span>';
+  return '<span class="b b-d">'+d+'g</span>';
+}
+
+function slaBadge(d) {
+  if (d===null) return '<span class="b b-m">&#8212;</span>';
+  if (d<0) return '<span class="b b-neg">ante</span>';
+  if (d<=7) return '<span class="b b-ok">OK</span>';
+  return '<span class="b b-d">&#9888; VIOLATA</span>';
+}
+
+function renderTable() {
+  var rows = state.filtered;
+  var pageRows = rows.slice((state.page-1)*state.pageSize, state.page*state.pageSize);
+  var maxD = Math.max.apply(null, rows.filter(function(r){return r.delta>0;}).map(function(r){return r.delta;}).concat([1]));
+
+  document.getElementById('tbl-count').textContent = rows.length + ' righe' + (rows.length!==state.matched.length?' \u00b7 filtrate su '+state.matched.length:'');
+
+  var tb = document.getElementById('tbl-body');
+  if (!pageRows.length) {
+    tb.innerHTML = '<tr><td colspan="9"><div class="empty"><h3>Nessun risultato</h3><p>Modifica i filtri per vedere i dati.</p></div></td></tr>';
+    document.getElementById('pgn').innerHTML = '';
+    return;
+  }
+
+  tb.innerHTML = pageRows.map(function(r){
+    var d = r.delta;
+    var pct = (d!==null&&d>0) ? Math.min(100,(d/maxD)*100) : 0;
+    var col = d===null?'var(--muted)':d<=3?'var(--ok)':d<=7?'var(--warn)':'var(--danger)';
+    return '<tr><td class="cw">'+(r.nome||'&#8212;')+'</td>'
+      +'<td style="font-size:10px;color:var(--muted)">'+(r.user||'&#8212;')+'</td>'
+      +'<td>'+r.shop+(r.shopDesc?'<span style="color:var(--muted);font-size:10px;display:block">'+r.shopDesc+'</span>':'')+'</td>'
+      +'<td style="font-size:10.5px">'+(r.region||'&#8212;')+'</td>'
+      +'<td style="font-size:10.5px;color:var(--muted)">'+(r.raName||'&#8212;')+'</td>'
+      +'<td>'+fmtDate(r.startDate)+'</td>'
+      +'<td>'+fmtDate(r.foxUpdate)+'</td>'
+      +'<td><div class="dbar"><span class="dnum">'+deltaBadge(d)+'</span><div class="dbg"><div class="dbf" style="width:'+pct+'%;background:'+col+'"></div></div></div></td>'
+      +'<td>'+slaBadge(d)+'</td></tr>';
+  }).join('');
+
+  renderPgn(rows.length);
+}
+
+function renderPgn(total) {
+  var pages = Math.ceil(total/state.pageSize);
+  if (pages<=1) { document.getElementById('pgn').innerHTML=''; return; }
+  var html = '<button class="pb" onclick="goPage('+(state.page-1)+')" '+(state.page===1?'disabled':'')+'>&#8592; Prec</button>';
+  var range = [];
+  for (var i=1;i<=pages;i++) {
+    if (i===1||i===pages||(i>=state.page-2&&i<=state.page+2)) range.push(i);
+    else if (range[range.length-1]!=='...') range.push('...');
+  }
+  range.forEach(function(p){
+    if (p==='...') html+='<span style="color:var(--muted);padding:0 4px">&#8230;</span>';
+    else html+='<button class="pb '+(p===state.page?'cur':'')+'" onclick="goPage('+p+')">'+p+'</button>';
+  });
+  html+='<button class="pb" onclick="goPage('+(state.page+1)+')" '+(state.page===pages?'disabled':'')+'>Succ &#8594;</button>';
+  html+='<span class="pi">'+((state.page-1)*state.pageSize+1)+'&#8211;'+Math.min(state.page*state.pageSize,total)+' di '+total+'</span>';
+  document.getElementById('pgn').innerHTML = html;
+}
+
+function goPage(p) {
+  state.page = p; renderTable();
+  document.getElementById('main-table').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function toggleSection(id) {
+  document.getElementById(id+'-toggle').classList.toggle('open');
+  document.getElementById(id+'-body').classList.toggle('show');
+}
+
+function exportCSV() {
+  var rows = state.filtered;
+  if (!rows.length) return;
+  var hdr = ['Nominativo','Utente AD','Shop','Descrizione Shop','Region','Inserito da','Data attivazione RA','DT_UPDATE FOX','Delta Giorni','SLA'];
+  var lines = [hdr.join(';')];
+  rows.forEach(function(r){
+    var sla = r.delta===null?'N/D':r.delta<0?'ANTE':r.delta<=7?'OK':'VIOLATA';
+    lines.push([r.nome,r.user,r.shop,r.shopDesc,r.region,r.raName,
+      r.startDate?r.startDate.toLocaleDateString('it-IT'):'',
+      r.foxUpdate?r.foxUpdate.toLocaleDateString('it-IT'):'',
+      r.delta!==null?r.delta:'',sla
+    ].map(function(v){ return '"'+String(v||'').replace(/"/g,'""')+'"'; }).join(';'));
+  });
+  var blob = new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'fox_timing_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click();
+}
+</script>
+</body>
+</html>
