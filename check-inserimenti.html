@@ -348,7 +348,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
       </div>
       <div class="mc">
         <div class="mc-val" style="color:#7ACD96" id="m-ok">–</div>
-        <div class="mc-lbl">Propagati correttamente<br>in tutti e 3</div>
+        <div class="mc-lbl">Propagati correttamente<br>in tutti e 4</div>
       </div>
       <div class="mc">
         <div class="mc-val" style="color:#F0BE6A" id="m-partial">–</div>
@@ -367,7 +367,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
     <div class="filter-bar">
       <select class="fsel" id="f-status" onchange="applyFilters()">
         <option value="">Tutti i risultati</option>
-        <option value="ok">✓ Completi (tutti e 3)</option>
+        <option value="ok">✓ Completi (tutti e 4)</option>
         <option value="partial">◑ Parziali</option>
         <option value="ko">✗ Non trovati</option>
       </select>
@@ -386,6 +386,10 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
       <input type="date" class="fsel" id="f-date-to" oninput="applyFilters()" title="Data attivazione a" style="color:var(--muted)">
       <button class="btn-sm" onclick="resetFilters()">✕ Reset</button>
       <span class="count-lbl" id="match-count">– utenti</span>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="btn-sm" onclick="exportView('results-body','results')" title="Esporta CSV">↓ CSV</button>
+        <button class="btn-sm" onclick="exportView('results-body','results','xlsx')" title="Esporta Excel">↓ Excel</button>
+      </div>
     </div>
 
     <div class="card" style="padding:0;overflow:hidden">
@@ -414,13 +418,17 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
   <div class="view" id="view-ko">
     <div class="alert alert-err">
       <span style="font-size:15px;flex-shrink:0">✗</span>
-      <div>Utenti presenti nel file RA ma <strong>non trovati in nessuno</strong> dei 3 sistemi. Verificare se l'inserimento è avvenuto correttamente o se c'è un problema di matching (email diversa, nome scritto diversamente).</div>
+      <div>Utenti presenti nel file RA ma <strong>non trovati in nessuno</strong> dei 4 sistemi. Verificare se l'inserimento è avvenuto correttamente o se c'è un problema di matching (email diversa, nome scritto diversamente).</div>
     </div>
     <div class="filter-bar">
       <select class="fsel" id="f-ra-ko" onchange="filterSubView('ko-body','f-ra-ko','ko-count')">
         <option value="">Tutte le RA</option>
       </select>
       <span class="count-lbl" id="ko-count">– utenti</span>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="btn-sm" onclick="exportView('ko-body','ko')" title="Esporta CSV">↓ CSV</button>
+        <button class="btn-sm" onclick="exportView('ko-body','ko','xlsx')" title="Esporta Excel">↓ Excel</button>
+      </div>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="tbl-wrap">
@@ -450,6 +458,10 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
         <option value="">Tutte le RA</option>
       </select>
       <span class="count-lbl" id="partial-count">– utenti</span>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="btn-sm" onclick="exportView('partial-body','partial')" title="Esporta CSV">↓ CSV</button>
+        <button class="btn-sm" onclick="exportView('partial-body','partial','xlsx')" title="Esporta Excel">↓ Excel</button>
+      </div>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="tbl-wrap">
@@ -476,13 +488,17 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
   <div class="view" id="view-ok">
     <div class="alert alert-info">
       <span style="font-size:15px;flex-shrink:0">✓</span>
-      <div>Utenti correttamente propagati in tutti e 3 i sistemi — Oracle PRM, FOX e ServiceNow. Se HCM è caricato, viene mostrata anche la colonna corrispondente.</div>
+      <div>Utenti correttamente propagati in tutti e 4 i sistemi — Oracle PRM, FOX, ServiceNow e Active Directory. Se HCM è caricato, viene mostrata anche la colonna corrispondente.</div>
     </div>
     <div class="filter-bar">
       <select class="fsel" id="f-ra-ok" onchange="filterSubView('ok-body','f-ra-ok','ok-count')">
         <option value="">Tutte le RA</option>
       </select>
       <span class="count-lbl" id="ok-count">– utenti</span>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="btn-sm" onclick="exportView('ok-body','ok')" title="Esporta CSV">↓ CSV</button>
+        <button class="btn-sm" onclick="exportView('ok-body','ok','xlsx')" title="Esporta Excel">↓ Excel</button>
+      </div>
     </div>
     <div class="card" style="padding:0;overflow:hidden">
       <div class="tbl-wrap">
@@ -1262,6 +1278,49 @@ function closePanel() {
   document.getElementById('overlay').classList.remove('open');
 }
 function esc(s) { return String(s).replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+// ═══════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════
+function exportView(tbodyId, label, format) {
+  format = format || 'csv';
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+
+  // Ricava gli header dalla thead della stessa tabella
+  const thead = tbody.closest('table').querySelector('thead tr');
+  const headers = [...thead.querySelectorAll('th')]
+    .filter(th => th.style.display !== 'none')
+    .map(th => th.textContent.trim().replace(/[↕↑↓]/g,'').trim());
+
+  // Righe visibili
+  const visibleRows = [...tbody.querySelectorAll('tr')]
+    .filter(tr => tr.style.display !== 'none');
+
+  const data = visibleRows.map(tr => {
+    const cells = [...tr.querySelectorAll('td')]
+      .filter(td => td.style.display !== 'none');
+    return cells.map(td => td.textContent.trim());
+  });
+
+  const filename = 'check_' + label + '_' + new Date().toISOString().slice(0,10);
+
+  if (format === 'csv') {
+    const escape = v => `"${String(v).replace(/"/g,'""')}"`;
+    const lines  = [headers, ...data].map(row => row.map(escape).join(','));
+    const blob   = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename + '.csv';
+    a.click();
+  } else {
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, label);
+    XLSX.writeFile(wb, filename + '.xlsx');
+  }
+}
+
 </script>
 </body>
 </html>
