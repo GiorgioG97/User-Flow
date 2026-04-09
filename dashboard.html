@@ -357,6 +357,10 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
       <input type="date" class="fsel" id="f-date-to"   oninput="applyFilters()" style="width:130px;cursor:pointer" title="Start PRM a">
       <button class="btn-reset" onclick="resetFilters()">✕ Reset</button>
       <span class="count-lbl" id="match-count">– utenti</span>
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="btn-reset" onclick="exportTable('csv')" title="Esporta CSV">↓ CSV</button>
+        <button class="btn-reset" onclick="exportTable('xlsx')" title="Esporta Excel">↓ Excel</button>
+      </div>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -1094,6 +1098,52 @@ function closePanel() {
 }
 
 function esc(s) { return s.replace(/'/g, "\\'"); }
+
+// ═══════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════
+function exportTable(format) {
+  // Raccoglie solo le righe visibili
+  const rows = [...document.querySelectorAll('#match-body tr')]
+    .filter(tr => tr.style.display !== 'none');
+
+  const headers = ['Nome','Email','AD Domain','PRM','FOX','Snow','AD','Ruolo','Start Date PRM','Copertura'];
+
+  const data = rows.map(tr => {
+    const cells = tr.querySelectorAll('td');
+    return [
+      cells[0]?.textContent?.trim() || '',
+      cells[1]?.textContent?.trim() || '',
+      cells[2]?.textContent?.trim() || '',
+      tr.dataset.prm === '1' ? (tr.querySelector('.sc-p') ? '~' : '✓') : '–',
+      tr.dataset.fox  === '1' ? '✓' : '–',
+      tr.dataset.snow === '1' ? '✓' : '–',
+      tr.dataset.ad   === '1' ? '✓' : '–',
+      cells[7]?.textContent?.trim() || '',
+      cells[8]?.textContent?.trim() || '',
+      cells[9]?.textContent?.trim() || '',
+    ];
+  });
+
+  if (format === 'csv') {
+    const escape = v => `"${String(v).replace(/"/g,'""')}"`;
+    const lines  = [headers, ...data].map(row => row.map(escape).join(','));
+    const blob   = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'userrecon_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+  } else {
+    // XLSX via libreria già caricata
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    // larghezze colonne
+    ws['!cols'] = [22,32,16,6,6,6,6,22,14,12].map(w => ({ wch: w }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'UserRecon');
+    XLSX.writeFile(wb, 'userrecon_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  }
+}
+
 </script>
 </body>
 </html>
