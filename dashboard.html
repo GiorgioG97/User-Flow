@@ -108,6 +108,10 @@ input[type=date].fsel{color-scheme:dark;}
 .tbl-wrap{overflow-x:auto;max-height:calc(100vh - 200px);overflow-y:auto}
 table{width:100%;border-collapse:collapse;font-size:11.5px}
 th{font-size:10px;font-weight:400;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg2);z-index:2}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--text)}
+th.sort-asc::after{content:' ↑';color:var(--accent)}
+th.sort-desc::after{content:' ↓';color:var(--accent)}
 td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
@@ -373,7 +377,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
           <th style="text-align:center">Snow</th>
           <th style="text-align:center">AD</th>
           <th>Ruolo</th>
-          <th>Start Date</th>
+          <th class="sortable" id="th-startdate" onclick="sortByStartDate()">Start Date</th>
           <th>Copertura</th>
         </tr></thead>
         <tbody id="match-body"></tbody>
@@ -1100,8 +1104,31 @@ function closePanel() {
 function esc(s) { return s.replace(/'/g, "\\'"); }
 
 // ═══════════════════════════════════════════
-// EXPORT
+// SORT
 // ═══════════════════════════════════════════
+let sortDir = null; // null | 'asc' | 'desc'
+
+function sortByStartDate() {
+  sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+  const th = document.getElementById('th-startdate');
+  th.classList.remove('sort-asc','sort-desc');
+  th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+
+  const tbody = document.getElementById('match-body');
+  const rows  = [...tbody.querySelectorAll('tr')];
+
+  rows.sort((a, b) => {
+    const da = parseDate(a.dataset.start);
+    const db = parseDate(b.dataset.start);
+    if (!da && !db) return 0;
+    if (!da) return 1;   // senza data → in fondo
+    if (!db) return -1;
+    return sortDir === 'asc' ? da - db : db - da;
+  });
+
+  rows.forEach(r => tbody.appendChild(r));
+}
+
 function exportTable(format) {
   // Raccoglie solo le righe visibili
   const rows = [...document.querySelectorAll('#match-body tr')]
