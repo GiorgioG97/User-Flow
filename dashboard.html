@@ -627,30 +627,35 @@ function runAnalysis() {
   const foxIdx = idx(RAW.fox, foxH, 'email');
   const snwIdx = idx(RAW.snow, snwH, 'email');
 
-  // prmIncomplete: righe PRM con status ACTIVE ma senza email
-  // Tentiamo di matchare via nome contro AD per ricavare un'email surrogate
+  // prmIncomplete: righe PRM con status ACTIVE ma email mancante
+  // Itera direttamente RAW.prm per trovare le righe senza email
   const prmIncomplete = {};
-  for (const [e2, rows2] of Object.entries(prmAllRows)) {
-    if (e2) continue; // ha già email
-    const activeRows2 = rows2.filter(r => String(r[prmColStatus] || '').trim().toUpperCase() === 'ACTIVE');
-    if (!activeRows2.length) continue;
-    const row2 = activeRows2.find(r => String(r[prmColPrimary] || '').trim() === 'Y') || activeRows2[0];
+  RAW.prm.forEach(row2 => {
+    const emailVal = String(row2[getCol(prmH, 'email')] || '').trim();
+    if (emailVal) return; // ha già email → gestita da prmIdx
+    const status2 = String(row2[prmColStatus] || '').trim().toUpperCase();
+    if (status2 !== 'ACTIVE') return;
     const fn = String(row2[getCol(prmH, 'firstname')] || '').toLowerCase().trim();
     const ln = String(row2[getCol(prmH, 'lastname')] || '').toLowerCase().trim();
-    if (!fn && !ln) continue;
-    // cerca in AD per nome
+    if (!fn && !ln) return;
+    // cerca in AD per nome/cognome
     let matchedEmail = null;
     RAW.ad.forEach(ar => {
-      const adEmail = String(ar[getCol(adH, 'email')] || ar[adH.find(h => h.toLowerCase().trim() === 'upn')] || '').trim().toLowerCase();
-      const adName = String(ar[adH.find(h => h.toLowerCase().trim() === 'nomeutente') || getCol(adH, 'fullname')] || '').toLowerCase();
+      if (matchedEmail) return;
+      const adEmailCol = getCol(adH, 'email');
+      const adUpnCol   = adH.find(h => h.toLowerCase().trim() === 'upn');
+      const adEmail = String(ar[adEmailCol] || ar[adUpnCol] || '').trim().toLowerCase();
       if (!adEmail) return;
-      if (adName.includes(fn) && adName.includes(ln)) matchedEmail = adEmail;
-      else if (adEmail.includes(fn.charAt(0)) && adEmail.includes(ln)) matchedEmail = adEmail;
+      const adNameCol = adH.find(h => h.toLowerCase().trim() === 'nomeutente') || getCol(adH, 'fullname');
+      const adName = String(ar[adNameCol] || '').toLowerCase();
+      const c1 = adName.includes(fn) && adName.includes(ln);
+      const c2 = fn.length > 0 && ln.length > 0 && adEmail.includes(fn[0]) && adEmail.includes(ln);
+      if (c1 || c2) matchedEmail = adEmail;
     });
-    if (matchedEmail) {
+    if (matchedEmail && !prmIdx[matchedEmail]) {
       prmIncomplete[matchedEmail] = row2;
     }
-  }
+  });
 
   // AD index: keyed by email (UPN/Email col), only Stato='Abilitato'
   const adColStatus = getCol(adH, 'status');
