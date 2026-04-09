@@ -352,6 +352,8 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
         <option value="active">Attivo in PRM</option>
         <option value="inactive">Inattivo in PRM</option>
       </select>
+      <input type="text" class="fsel" id="f-date-from" placeholder="gg/mm/aaaa" oninput="applyFilters()" style="width:100px;cursor:text" title="Start PRM da">
+      <input type="text" class="fsel" id="f-date-to"   placeholder="gg/mm/aaaa" oninput="applyFilters()" style="width:100px;cursor:text" title="Start PRM a">
       <button class="btn-reset" onclick="resetFilters()">✕ Reset</button>
       <span class="count-lbl" id="match-count">– utenti</span>
     </div>
@@ -926,6 +928,7 @@ function renderMatchTable(rows) {
       data-snow="${r.in_snow?'1':'0'}"
       data-ad="${r.in_ad?'1':'0'}"
       data-status="${(r.status_prm||'').toLowerCase()}"
+      data-start="${r.start_prm||''}"
       data-search="${(r.name+' '+r.email+' '+r.ad).toLowerCase()}">
       <td style="font-weight:500">${r.name||'–'}</td>
       <td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis">${r.email}</td>
@@ -944,11 +947,22 @@ function renderMatchTable(rows) {
 // ═══════════════════════════════════════════
 // FILTERS
 // ═══════════════════════════════════════════
+function parseDate(s) {
+  // accetta gg/mm/aaaa
+  if (!s) return null;
+  const p = s.trim().split('/');
+  if (p.length !== 3) return null;
+  const d = new Date(+p[2], +p[1]-1, +p[0]);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 function applyFilters() {
-  const q   = (document.getElementById('globalSearch')?.value || '').toLowerCase();
-  const cov = document.getElementById('f-cov')?.value || '';
-  const sys = document.getElementById('f-sys')?.value || '';
-  const st  = document.getElementById('f-status')?.value || '';
+  const q    = (document.getElementById('globalSearch')?.value || '').toLowerCase();
+  const cov  = document.getElementById('f-cov')?.value || '';
+  const sys  = document.getElementById('f-sys')?.value || '';
+  const st   = document.getElementById('f-status')?.value || '';
+  const dfrom = parseDate(document.getElementById('f-date-from')?.value);
+  const dto   = parseDate(document.getElementById('f-date-to')?.value);
 
   const rows = document.querySelectorAll('#match-body tr');
   let visible = 0;
@@ -957,7 +971,17 @@ function applyFilters() {
     const matchCov = !cov || tr.dataset.cov === cov;
     const matchSys = !sys || tr.dataset[sys] === '1';
     const matchSt  = !st  || (st === 'active' ? tr.dataset.status === 'active' : tr.dataset.status !== 'active' && tr.dataset.status !== '');
-    const show = matchQ && matchCov && matchSys && matchSt;
+    let matchDate  = true;
+    if (dfrom || dto) {
+      const sd = parseDate(tr.dataset.start);
+      if (!sd) {
+        matchDate = false;
+      } else {
+        if (dfrom && sd < dfrom) matchDate = false;
+        if (dto   && sd > dto)   matchDate = false;
+      }
+    }
+    const show = matchQ && matchCov && matchSys && matchSt && matchDate;
     tr.style.display = show ? '' : 'none';
     if (show) visible++;
   });
@@ -966,6 +990,7 @@ function applyFilters() {
 
 function resetFilters() {
   ['f-cov','f-sys','f-status'].forEach(id => document.getElementById(id).value = '');
+  ['f-date-from','f-date-to'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('globalSearch').value = '';
   applyFilters();
 }
