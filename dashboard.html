@@ -369,7 +369,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
           <th style="text-align:center">Snow</th>
           <th style="text-align:center">AD</th>
           <th>Ruolo</th>
-          <th>Area</th>
+          <th>Start Date</th>
           <th>Copertura</th>
         </tr></thead>
         <tbody id="match-body"></tbody>
@@ -939,7 +939,7 @@ function renderMatchTable(rows) {
       <td style="text-align:center"><span class="sc ${r.in_snow?'sc-y':'sc-n'}">${r.in_snow?'✓':'–'}</span></td>
       <td style="text-align:center"><span class="sc ${r.in_ad?'sc-y':'sc-n'}">${r.in_ad?'✓':'–'}</span></td>
       <td style="color:var(--muted);font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.job_title||'–'}</td>
-      <td style="color:var(--muted);font-size:11px">${r.area||'–'}</td>
+      <td style="color:var(--muted);font-size:11px">${r.start_prm||'–'}</td>
       <td><span class="badge ${cov[0]}">${cov[1]}</span></td>
     </tr>`;
   }).join('');
