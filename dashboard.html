@@ -99,6 +99,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
 .fsel{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:5px 9px;color:var(--text);font-family:var(--fm);font-size:11px;outline:none;cursor:pointer}
 .fsel:focus{border-color:var(--accent)}
+input[type=date].fsel{color-scheme:dark;}
 .count-lbl{margin-left:auto;font-size:11px;color:var(--muted)}
 .btn-reset{background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:var(--fm);font-size:11px;cursor:pointer;transition:all .12s}
 .btn-reset:hover{border-color:var(--accent);color:var(--accent)}
@@ -352,8 +353,8 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
         <option value="active">Attivo in PRM</option>
         <option value="inactive">Inattivo in PRM</option>
       </select>
-      <input type="text" class="fsel" id="f-date-from" placeholder="gg/mm/aaaa" oninput="applyFilters()" style="width:100px;cursor:text" title="Start PRM da">
-      <input type="text" class="fsel" id="f-date-to"   placeholder="gg/mm/aaaa" oninput="applyFilters()" style="width:100px;cursor:text" title="Start PRM a">
+      <input type="date" class="fsel" id="f-date-from" oninput="applyFilters()" style="width:130px;cursor:pointer" title="Start PRM da">
+      <input type="date" class="fsel" id="f-date-to"   oninput="applyFilters()" style="width:130px;cursor:pointer" title="Start PRM a">
       <button class="btn-reset" onclick="resetFilters()">✕ Reset</button>
       <span class="count-lbl" id="match-count">– utenti</span>
     </div>
@@ -948,12 +949,25 @@ function renderMatchTable(rows) {
 // FILTERS
 // ═══════════════════════════════════════════
 function parseDate(s) {
-  // accetta gg/mm/aaaa
   if (!s) return null;
-  const p = s.trim().split('/');
-  if (p.length !== 3) return null;
-  const d = new Date(+p[2], +p[1]-1, +p[0]);
-  return isNaN(d.getTime()) ? null : d;
+  s = s.trim();
+  // formato input type=date: YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // formato PRM: DD-MM-YYYY o DD/MM/YYYY
+  const p = s.split(/[-\/]/);
+  if (p.length === 3) {
+    // se primo pezzo è 4 cifre → YYYY-MM-DD già gestito sopra
+    // altrimenti DD-MM-YYYY
+    const [a, b, c] = p;
+    const d = a.length === 4
+      ? new Date(+a, +b-1, +c)
+      : new Date(+c, +b-1, +a);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
 }
 
 function applyFilters() {
