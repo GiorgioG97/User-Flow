@@ -128,6 +128,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
 .sc{display:inline-flex;align-items:center;justify-content:center;width:22px;height:18px;border-radius:3px;font-size:9px;font-weight:600}
 .sc-y{background:rgba(91,174,118,.15);color:#7ACD96}
 .sc-n{background:rgba(255,255,255,.04);color:var(--bg4)}
+.sc-p{background:rgba(232,162,58,.18);color:#F0BE6A}
 
 /* ── ALERT ── */
 .alert{display:flex;gap:10px;padding:11px 14px;border-radius:6px;margin-bottom:14px;font-size:11.5px;line-height:1.75}
@@ -168,6 +169,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
   <div class="sb-logo">
     <div class="sb-title">UserRecon</div>
     <div class="sb-sub">Oracle PRM · FOX · ServiceNow · AD</div>
+
   </div>
 
   <div class="sb-section">Viste</div>
@@ -276,11 +278,10 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
       <div class="mc" onclick="nav('matching')">
         <div class="mc-val" id="m-total">–</div>
         <div class="mc-lbl">Utenti unici totali</div>
-        <div class="mc-sub" style="color:var(--muted)">dai 3 sistemi combinati</div>
+        <div class="mc-sub" style="color:var(--muted)">dai 4 sistemi combinati</div>
       </div>
-      <div class="mc" onclick="filterAndGo('all3')">
-        <div class="mc-val" style="color:#7ACD96" id="m-all3">–</div>
-        <div class="mc-lbl">In tutti e 3 i sistemi</div>
+      <div class="mc" onclick="filterAndGo('all4')">        <div class="mc-val" style="color:#7ACD96" id="m-all3">–</div>
+        <div class="mc-lbl">In tutti e 4 i sistemi</div>
         <div class="mc-sub" style="color:#7ACD96" id="m-all3-pct">–</div>
       </div>
       <div class="mc" onclick="filterAndGo('2sys')">
@@ -334,7 +335,8 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
     <div class="filter-bar">
       <select class="fsel" id="f-cov" onchange="applyFilters()">
         <option value="">Tutta la copertura</option>
-        <option value="all3">Tutti e 3</option>
+        <option value="all4">Tutti e 4</option>
+        <option value="3sys">In 3 sistemi</option>
         <option value="2sys">In 2 sistemi</option>
         <option value="1sys">In 1 sistema</option>
       </select>
@@ -350,15 +352,13 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
         <option value="active">Attivo in PRM</option>
         <option value="inactive">Inattivo in PRM</option>
       </select>
-      <input type="date" class="fsel" id="f-date-from" oninput="applyFilters()" title="Start date da" style="color:var(--muted)">
-      <input type="date" class="fsel" id="f-date-to" oninput="applyFilters()" title="Start date a" style="color:var(--muted)">
       <button class="btn-reset" onclick="resetFilters()">✕ Reset</button>
       <span class="count-lbl" id="match-count">– utenti</span>
     </div>
     <div class="tbl-wrap">
       <table>
         <thead><tr>
-          <th onclick="sortTable('name')" style="cursor:pointer;user-select:none">Nome <span id="sort-name" style="color:var(--muted)">↕</span></th>
+          <th>Nome</th>
           <th>Email</th>
           <th>AD domain</th>
           <th style="text-align:center">PRM</th>
@@ -367,7 +367,6 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
           <th style="text-align:center">AD</th>
           <th>Ruolo</th>
           <th>Area</th>
-          <th onclick="sortTable('start_date')" style="cursor:pointer;user-select:none">Start Date <span id="sort-start_date" style="color:var(--muted)">↕</span></th>
           <th>Copertura</th>
         </tr></thead>
         <tbody id="match-body"></tbody>
@@ -628,6 +627,31 @@ function runAnalysis() {
   const foxIdx = idx(RAW.fox, foxH, 'email');
   const snwIdx = idx(RAW.snow, snwH, 'email');
 
+  // prmIncomplete: righe PRM con status ACTIVE ma senza email
+  // Tentiamo di matchare via nome contro AD per ricavare un'email surrogate
+  const prmIncomplete = {};
+  for (const [e2, rows2] of Object.entries(prmAllRows)) {
+    if (e2) continue; // ha già email
+    const activeRows2 = rows2.filter(r => String(r[prmColStatus] || '').trim().toUpperCase() === 'ACTIVE');
+    if (!activeRows2.length) continue;
+    const row2 = activeRows2.find(r => String(r[prmColPrimary] || '').trim() === 'Y') || activeRows2[0];
+    const fn = String(row2[getCol(prmH, 'firstname')] || '').toLowerCase().trim();
+    const ln = String(row2[getCol(prmH, 'lastname')] || '').toLowerCase().trim();
+    if (!fn && !ln) continue;
+    // cerca in AD per nome
+    let matchedEmail = null;
+    RAW.ad.forEach(ar => {
+      const adEmail = String(ar[getCol(adH, 'email')] || ar[adH.find(h => h.toLowerCase().trim() === 'upn')] || '').trim().toLowerCase();
+      const adName = String(ar[adH.find(h => h.toLowerCase().trim() === 'nomeutente') || getCol(adH, 'fullname')] || '').toLowerCase();
+      if (!adEmail) return;
+      if (adName.includes(fn) && adName.includes(ln)) matchedEmail = adEmail;
+      else if (adEmail.includes(fn.charAt(0)) && adEmail.includes(ln)) matchedEmail = adEmail;
+    });
+    if (matchedEmail) {
+      prmIncomplete[matchedEmail] = row2;
+    }
+  }
+
   // AD index: keyed by email (UPN/Email col), only Stato='Abilitato'
   const adColStatus = getCol(adH, 'status');
   const adIdx = {};
@@ -641,19 +665,23 @@ function runAnalysis() {
     if (e) adIdx[e] = r;
   });
 
-  const allEmails = [...new Set([...Object.keys(prmIdx), ...Object.keys(foxIdx), ...Object.keys(snwIdx), ...Object.keys(adIdx)])].sort();
+  const allEmails = [...new Set([...Object.keys(prmIdx), ...Object.keys(prmIncomplete), ...Object.keys(foxIdx), ...Object.keys(snwIdx), ...Object.keys(adIdx)])].sort();
 
   DATA = allEmails.map(e => {
-    const p = prmIdx[e], f = foxIdx[e], s = snwIdx[e], a = adIdx[e];
+    const p = prmIdx[e] || null;
+    const pInc = !p && prmIncomplete[e] ? prmIncomplete[e] : null;
+    const pEff = p || pInc; // record PRM effettivo (completo o incompleto)
+    const f = foxIdx[e], s = snwIdx[e], a = adIdx[e];
     const in_prm = !!p, in_fox = !!f, in_snow = !!s, in_ad = !!a;
-    const sys_count = [in_prm, in_fox, in_snow].filter(Boolean).length;
+    const prm_incomplete = !!pInc; // ACTIVE in PRM ma email mancante
+    const sys_count = [in_prm || prm_incomplete, in_fox, in_snow, in_ad].filter(Boolean).length;
 
-    const name_prm = p ? (getVal(p, prmH, 'firstname') + ' ' + getVal(p, prmH, 'lastname')).trim() || getVal(p, prmH, 'fullname') : '';
+    const name_prm = pEff ? (getVal(pEff, prmH, 'firstname') + ' ' + getVal(pEff, prmH, 'lastname')).trim() || getVal(pEff, prmH, 'fullname') : '';
     const name_fox = f ? getVal(f, foxH, 'fullname') || (getVal(f, foxH, 'firstname') + ' ' + getVal(f, foxH, 'lastname')).trim() : '';
     const name_snow = s ? getVal(s, snwH, 'fullname') || (getVal(s, snwH, 'firstname') + ' ' + getVal(s, snwH, 'lastname')).trim() : '';
     const name = name_prm || name_snow || name_fox;
 
-    const ad_prm  = p ? normUser(getVal(p, prmH, 'ad_domain')) : '';
+    const ad_prm  = pEff ? normUser(getVal(pEff, prmH, 'ad_domain')) : '';
     const ad_fox  = f ? normUser(getVal(f, foxH, 'ad_domain') || getVal(f, foxH, 'username')) : '';
     const ad_snow = s ? normUser(getVal(s, snwH, 'ad_domain')) : '';
     const ad_vals = [ad_prm, ad_fox, ad_snow].filter(Boolean);
@@ -662,23 +690,23 @@ function runAnalysis() {
 
     return {
       email: e, name, name_prm, name_fox, name_snow,
-      in_prm, in_fox, in_snow, in_ad, sys_count,
+      in_prm, in_fox, in_snow, in_ad, prm_incomplete, sys_count,
       ad, ad_prm, ad_fox, ad_snow, ad_conflict,
       upn_ad:     a ? String(a[adH.find(h => h.toLowerCase().trim() === 'upn')] || '').trim() : '',
       status_ad:  a ? String(a[adColStatus] || '').trim() : '',
       ou_ad:      a ? String(a[adH.find(h => h.toLowerCase().trim() === 'ouprovenienza')] || '').trim() : '',
       date_ad:    a ? String(a[adH.find(h => h.toLowerCase().trim() === 'datacreazione')] || '').trim() : '',
-      status_prm: p ? getVal(p, prmH, 'status') : '',
+      status_prm: pEff ? getVal(pEff, prmH, 'status') : '',
       status_fox: f ? getVal(f, foxH, 'status') : '',
       status_snow: s ? getVal(s, snwH, 'status') : '',
-      start_prm: p ? getVal(p, prmH, 'start_date') : '',
+      start_prm: pEff ? getVal(pEff, prmH, 'start_date') : '',
       start_fox: f ? getVal(f, foxH, 'start_date') : '',
       start_snow: s ? getVal(s, snwH, 'start_date') : '',
-      job_title: p ? getVal(p, prmH, 'job_title') : (s ? getVal(s, snwH, 'job_title') : ''),
-      person_type: p ? getVal(p, prmH, 'person_type') : '',
-      area: p ? getVal(p, prmH, 'area') : '',
-      shop: p ? getVal(p, prmH, 'shop') : '',
-      employee_id: p ? getVal(p, prmH, 'employee_id') : (f ? getVal(f, foxH, 'employee_id') : ''),
+      job_title: pEff ? getVal(pEff, prmH, 'job_title') : (s ? getVal(s, snwH, 'job_title') : ''),
+      person_type: pEff ? getVal(pEff, prmH, 'person_type') : '',
+      area: pEff ? getVal(pEff, prmH, 'area') : '',
+      shop: pEff ? getVal(pEff, prmH, 'shop') : '',
+      employee_id: pEff ? getVal(pEff, prmH, 'employee_id') : (f ? getVal(f, foxH, 'employee_id') : ''),
     };
   });
 
@@ -707,14 +735,15 @@ function runAnalysis() {
 // ═══════════════════════════════════════════
 function renderOverview() {
   const total = DATA.length;
-  const all3  = DATA.filter(r => r.sys_count === 3).length;
+  const all4  = DATA.filter(r => r.sys_count === 4).length;
+  const three = DATA.filter(r => r.sys_count === 3).length;
   const two   = DATA.filter(r => r.sys_count === 2).length;
   const one   = DATA.filter(r => r.sys_count === 1).length;
 
   document.getElementById('m-total').textContent = total;
-  document.getElementById('m-all3').textContent = all3;
-  document.getElementById('m-all3-pct').textContent = Math.round(all3/total*100) + '% del totale';
-  document.getElementById('m-2sys').textContent = two;
+  document.getElementById('m-all3').textContent = all4;
+  document.getElementById('m-all3-pct').textContent = Math.round(all4/total*100) + '% del totale';
+  document.getElementById('m-2sys').textContent = two + three;
   document.getElementById('m-1sys').textContent = one;
 
   // destroy old charts
@@ -744,13 +773,21 @@ function renderOverview() {
   });
 
   const COMBOS = [
-    { label: 'Tutti e 3',           check: r => r.in_prm && r.in_fox && r.in_snow,   color: '#5BAE76', diag: '✓ Sincronizzato' },
-    { label: 'PRM + FOX',           check: r => r.in_prm && r.in_fox && !r.in_snow,  color: '#E8A23A', diag: '⚠ Manca in ServiceNow' },
-    { label: 'PRM + Snow',          check: r => r.in_prm && !r.in_fox && r.in_snow,  color: '#E8A23A', diag: '⚠ Manca in FOX (16:30)' },
-    { label: 'FOX + Snow',          check: r => !r.in_prm && r.in_fox && r.in_snow,  color: '#D95B5B', diag: '✗ Manca in Oracle PRM' },
-    { label: 'Solo Oracle PRM',     check: r => r.in_prm && !r.in_fox && !r.in_snow, color: '#C74634', diag: '◉ In attesa sync (21:00)' },
-    { label: 'Solo FOX',            check: r => !r.in_prm && r.in_fox && !r.in_snow, color: '#1B5DAA', diag: '◉ Non in HCM né Snow' },
-    { label: 'Solo ServiceNow',     check: r => !r.in_prm && !r.in_fox && r.in_snow, color: '#81B5A1', diag: '◉ Orfano Snow' },
+    { label: 'Tutti e 4',             check: r => (r.in_prm||r.prm_incomplete) && r.in_fox && r.in_snow && r.in_ad,  color: '#5BAE76', diag: '✓ Completamente sincronizzato' },
+    { label: 'PRM+FOX+Snow',          check: r => (r.in_prm||r.prm_incomplete) && r.in_fox && r.in_snow && !r.in_ad, color: '#5BAE76', diag: '⚠ Manca in Active Directory' },
+    { label: 'PRM+FOX+AD',            check: r => (r.in_prm||r.prm_incomplete) && r.in_fox && !r.in_snow && r.in_ad, color: '#E8A23A', diag: '⚠ Manca in ServiceNow' },
+    { label: 'PRM+Snow+AD',           check: r => (r.in_prm||r.prm_incomplete) && !r.in_fox && r.in_snow && r.in_ad, color: '#E8A23A', diag: '⚠ Manca in FOX' },
+    { label: 'FOX+Snow+AD',           check: r => !(r.in_prm||r.prm_incomplete) && r.in_fox && r.in_snow && r.in_ad, color: '#D95B5B', diag: '✗ Manca in Oracle PRM' },
+    { label: 'PRM + FOX',             check: r => (r.in_prm||r.prm_incomplete) && r.in_fox && !r.in_snow && !r.in_ad, color: '#E8A23A', diag: '⚠ Manca in ServiceNow e AD' },
+    { label: 'PRM + Snow',            check: r => (r.in_prm||r.prm_incomplete) && !r.in_fox && r.in_snow && !r.in_ad, color: '#E8A23A', diag: '⚠ Manca in FOX e AD' },
+    { label: 'PRM + AD',              check: r => (r.in_prm||r.prm_incomplete) && !r.in_fox && !r.in_snow && r.in_ad, color: '#E8A23A', diag: '⚠ Manca in FOX e ServiceNow' },
+    { label: 'FOX + Snow',            check: r => !(r.in_prm||r.prm_incomplete) && r.in_fox && r.in_snow && !r.in_ad, color: '#D95B5B', diag: '✗ Manca in PRM e AD' },
+    { label: 'FOX + AD',              check: r => !(r.in_prm||r.prm_incomplete) && r.in_fox && !r.in_snow && r.in_ad, color: '#D95B5B', diag: '✗ Manca in PRM e Snow' },
+    { label: 'Snow + AD',             check: r => !(r.in_prm||r.prm_incomplete) && !r.in_fox && r.in_snow && r.in_ad, color: '#D95B5B', diag: '✗ Manca in PRM e FOX' },
+    { label: 'Solo Oracle PRM',       check: r => (r.in_prm||r.prm_incomplete) && !r.in_fox && !r.in_snow && !r.in_ad, color: '#C74634', diag: '◉ In attesa sync' },
+    { label: 'Solo FOX',              check: r => !(r.in_prm||r.prm_incomplete) && r.in_fox && !r.in_snow && !r.in_ad, color: '#1B5DAA', diag: '◉ Non in HCM né Snow' },
+    { label: 'Solo ServiceNow',       check: r => !(r.in_prm||r.prm_incomplete) && !r.in_fox && r.in_snow && !r.in_ad, color: '#81B5A1', diag: '◉ Orfano Snow' },
+    { label: 'Solo AD',               check: r => !(r.in_prm||r.prm_incomplete) && !r.in_fox && !r.in_snow && r.in_ad, color: '#2A7A5A', diag: '◉ Solo in Active Directory' },
   ];
 
   const mb = document.getElementById('matrix-body');
@@ -806,7 +843,7 @@ function renderGaps() {
   }
 
   renderGapCard('gap-only-fox', 'gap-fox-count', 'body-only-fox',
-    DATA.filter(r => !r.in_prm && r.in_fox && !r.in_snow),
+    DATA.filter(r => !(r.in_prm||r.prm_incomplete) && r.in_fox && !r.in_snow),
     r => `<tr onclick="openDetail('${esc(r.email)}')">
       <td>${r.name || '–'}</td>
       <td style="color:var(--muted)">${r.email}</td>
@@ -816,7 +853,7 @@ function renderGaps() {
   );
 
   renderGapCard('gap-prm-fox', 'gap-prm-fox-count', 'body-prm-fox',
-    DATA.filter(r => r.in_prm && r.in_fox && !r.in_snow),
+    DATA.filter(r => (r.in_prm||r.prm_incomplete) && r.in_fox && !r.in_snow),
     r => `<tr onclick="openDetail('${esc(r.email)}')">
       <td>${r.name||'–'}</td>
       <td style="color:var(--muted)">${r.email}</td>
@@ -828,7 +865,7 @@ function renderGaps() {
   );
 
   renderGapCard('gap-only-snow', 'gap-snow-count', 'body-only-snow',
-    DATA.filter(r => !r.in_prm && !r.in_fox && r.in_snow),
+    DATA.filter(r => !(r.in_prm||r.prm_incomplete) && !r.in_fox && r.in_snow),
     r => `<tr onclick="openDetail('${esc(r.email)}')">
       <td>${r.name||'–'}</td>
       <td style="color:var(--muted)">${r.email}</td>
@@ -839,7 +876,7 @@ function renderGaps() {
   );
 
   renderGapCard('gap-only-prm', 'gap-prm-count', 'body-only-prm',
-    DATA.filter(r => r.in_prm && !r.in_fox && !r.in_snow),
+    DATA.filter(r => (r.in_prm||r.prm_incomplete) && !r.in_fox && !r.in_snow),
     r => `<tr onclick="openDetail('${esc(r.email)}')">
       <td>${r.name||'–'}</td>
       <td style="color:var(--muted)">${r.email}</td>
@@ -851,7 +888,7 @@ function renderGaps() {
   );
 
   renderGapCard('gap-prm-snow', 'gap-prm-snow-count', 'body-prm-snow',
-    DATA.filter(r => r.in_prm && !r.in_fox && r.in_snow),
+    DATA.filter(r => (r.in_prm||r.prm_incomplete) && !r.in_fox && r.in_snow),
     r => `<tr onclick="openDetail('${esc(r.email)}')">
       <td>${r.name||'–'}</td>
       <td style="color:var(--muted)">${r.email}</td>
@@ -871,79 +908,32 @@ function renderMatchTable(rows) {
   document.getElementById('match-count').textContent = rows.length + ' utenti';
   const tbody = document.getElementById('match-body');
   tbody.innerHTML = rows.map(r => {
-    const cov = r.sys_count === 3 ? ['b-all','Tutti e 3'] : r.sys_count === 2 ? ['b-2','2 sistemi'] : ['b-1','1 sistema'];
+    const cov = r.sys_count === 4 ? ['b-all','Tutti e 4'] : r.sys_count === 3 ? ['b-2','3 sistemi'] : r.sys_count === 2 ? ['b-2','2 sistemi'] : ['b-1','1 sistema'];
+    const prmCell = r.in_prm
+      ? `<span class="sc sc-y" title="Presente in PRM">✓</span>`
+      : r.prm_incomplete
+        ? `<span class="sc sc-p" title="Presente in PRM ma senza email">~</span>`
+        : `<span class="sc sc-n">–</span>`;
     return `<tr onclick="openDetail('${esc(r.email)}')"
-      data-cov="${r.sys_count===3?'all3':r.sys_count===2?'2sys':'1sys'}"
-      data-prm="${r.in_prm?'1':'0'}"
+      data-cov="${r.sys_count===4?'all4':r.sys_count===3?'3sys':r.sys_count===2?'2sys':'1sys'}"
+      data-prm="${(r.in_prm||r.prm_incomplete)?'1':'0'}"
       data-fox="${r.in_fox?'1':'0'}"
       data-snow="${r.in_snow?'1':'0'}"
       data-ad="${r.in_ad?'1':'0'}"
       data-status="${(r.status_prm||'').toLowerCase()}"
-      data-search="${(r.name+' '+r.email+' '+r.ad).toLowerCase()}"
-      data-start="${r.start_prm||''}">
+      data-search="${(r.name+' '+r.email+' '+r.ad).toLowerCase()}">
       <td style="font-weight:500">${r.name||'–'}</td>
       <td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis">${r.email}</td>
       <td><code style="font-size:10px;color:var(--accent)">${r.ad||'–'}</code></td>
-      <td style="text-align:center"><span class="sc ${r.in_prm?'sc-y':'sc-n'}">${r.in_prm?'✓':'–'}</span></td>
+      <td style="text-align:center">${prmCell}</td>
       <td style="text-align:center"><span class="sc ${r.in_fox?'sc-y':'sc-n'}">${r.in_fox?'✓':'–'}</span></td>
       <td style="text-align:center"><span class="sc ${r.in_snow?'sc-y':'sc-n'}">${r.in_snow?'✓':'–'}</span></td>
       <td style="text-align:center"><span class="sc ${r.in_ad?'sc-y':'sc-n'}">${r.in_ad?'✓':'–'}</span></td>
       <td style="color:var(--muted);font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.job_title||'–'}</td>
       <td style="color:var(--muted);font-size:11px">${r.area||'–'}</td>
-      <td style="color:var(--muted);font-size:11px;white-space:nowrap">${r.start_prm ? fmtDate(r.start_prm) : '–'}</td>
       <td><span class="badge ${cov[0]}">${cov[1]}</span></td>
     </tr>`;
   }).join('');
-}
-
-// ═══════════════════════════════════════════
-// SORT
-// ═══════════════════════════════════════════
-let sortState = { col: null, dir: 1 };
-
-function fmtDate(v) {
-  if (!v) return '';
-  const s = String(v).trim();
-  // già formato it-IT dd/mm/yyyy
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) return s;
-  const d = new Date(s);
-  if (isNaN(d)) return s;
-  return d.toLocaleDateString('it-IT');
-}
-
-function parseDateSort(v) {
-  if (!v) return 0;
-  const s = String(v).trim();
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
-    const [d,m,y] = s.split('/');
-    return new Date(`${y}-${m}-${d}`).getTime() || 0;
-  }
-  return new Date(s).getTime() || 0;
-}
-
-function sortTable(col) {
-  if (sortState.col === col) sortState.dir *= -1;
-  else { sortState.col = col; sortState.dir = 1; }
-
-  // update arrow indicators
-  ['name','start_date'].forEach(c => {
-    const el = document.getElementById('sort-'+c);
-    if (el) el.textContent = sortState.col === c ? (sortState.dir === 1 ? '↑' : '↓') : '↕';
-  });
-
-  const sorted = [...DATA].sort((a, b) => {
-    let va, vb;
-    if (col === 'start_date') {
-      va = parseDateSort(a.start_prm);
-      vb = parseDateSort(b.start_prm);
-      return (va - vb) * sortState.dir;
-    }
-    va = (a.name || '').toLowerCase();
-    vb = (b.name || '').toLowerCase();
-    return va < vb ? -sortState.dir : va > vb ? sortState.dir : 0;
-  });
-  renderMatchTable(sorted);
-  applyFilters();
 }
 
 // ═══════════════════════════════════════════
@@ -954,8 +944,6 @@ function applyFilters() {
   const cov = document.getElementById('f-cov')?.value || '';
   const sys = document.getElementById('f-sys')?.value || '';
   const st  = document.getElementById('f-status')?.value || '';
-  const dfrom = document.getElementById('f-date-from')?.value || '';
-  const dto   = document.getElementById('f-date-to')?.value || '';
 
   const rows = document.querySelectorAll('#match-body tr');
   let visible = 0;
@@ -964,13 +952,7 @@ function applyFilters() {
     const matchCov = !cov || tr.dataset.cov === cov;
     const matchSys = !sys || tr.dataset[sys] === '1';
     const matchSt  = !st  || (st === 'active' ? tr.dataset.status === 'active' : tr.dataset.status !== 'active' && tr.dataset.status !== '');
-    let matchDate = true;
-    if (dfrom || dto) {
-      const ts = parseDateSort(tr.dataset.start || '');
-      if (dfrom) { const f = new Date(dfrom).getTime(); if (!ts || ts < f) matchDate = false; }
-      if (dto && matchDate) { const t = new Date(dto).getTime() + 86399999; if (!ts || ts > t) matchDate = false; }
-    }
-    const show = matchQ && matchCov && matchSys && matchSt && matchDate;
+    const show = matchQ && matchCov && matchSys && matchSt;
     tr.style.display = show ? '' : 'none';
     if (show) visible++;
   });
@@ -979,7 +961,6 @@ function applyFilters() {
 
 function resetFilters() {
   ['f-cov','f-sys','f-status'].forEach(id => document.getElementById(id).value = '');
-  ['f-date-from','f-date-to'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('globalSearch').value = '';
   applyFilters();
 }
@@ -997,18 +978,19 @@ function openDetail(email) {
   const badges = document.getElementById('p-badges');
   badges.innerHTML = '';
   if (r.in_prm) badges.innerHTML += `<span class="badge b-prm">Oracle PRM</span> `;
+  else if (r.prm_incomplete) badges.innerHTML += `<span class="badge" style="background:rgba(232,162,58,.14);color:#F0BE6A">Oracle PRM ⚠ email mancante</span> `;
   if (r.in_fox) badges.innerHTML += `<span class="badge b-fox">FOX</span> `;
   if (r.in_snow) badges.innerHTML += `<span class="badge b-snow">ServiceNow</span> `;
   if (r.in_ad)  badges.innerHTML += `<span class="badge b-ad">Active Directory</span> `;
-  const cov = r.sys_count === 3 ? '<span class="badge b-all">Tutti e 3</span>' : r.sys_count === 2 ? '<span class="badge b-2">2 sistemi</span>' : '<span class="badge b-1">1 sistema</span>';
-  badges.innerHTML += cov;
+  const covN = r.sys_count === 4 ? '<span class="badge b-all">Tutti e 4</span>' : r.sys_count === 3 ? '<span class="badge b-2">3 sistemi</span>' : r.sys_count === 2 ? '<span class="badge b-2">2 sistemi</span>' : '<span class="badge b-1">1 sistema</span>';
+  badges.innerHTML += covN;
 
   const grid = document.getElementById('p-grid');
   grid.style.gridTemplateColumns = 'repeat(2,1fr)';
   grid.innerHTML = `
     <div class="panel-cell">
       <div class="pc-sys">Oracle PRM</div>
-      <div class="pc-val">${r.in_prm ? '<span style="color:#7ACD96">✓ Presente</span>' : '<span style="color:var(--muted)">– Assente</span>'}</div>
+      <div class="pc-val">${r.in_prm ? '<span style="color:#7ACD96">✓ Presente</span>' : r.prm_incomplete ? '<span style="color:#F0BE6A">~ Presente (email mancante)</span>' : '<span style="color:var(--muted)">– Assente</span>'}</div>
       ${r.ad_prm ? `<div class="pc-ad">AD: ${r.ad_prm}</div>` : ''}
       ${r.status_prm ? `<div class="pc-ad">Status: <span style="color:${r.status_prm==='ACTIVE'?'#7ACD96':'#E88080'}">${r.status_prm}</span></div>` : ''}
     </div>
