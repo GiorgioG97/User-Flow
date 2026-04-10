@@ -502,6 +502,7 @@ function doAnalysis() {
   var prmColStart = findCol(prmH, 'START DATE', 'start date', 'start_date');
   var prmColReg   = findCol(prmH, 'REGION DESCRIPTION', 'region description', 'region_description');
   var prmColShopD = findCol(prmH, 'SHOP DESCRIPTION', 'shop description');
+  var prmColStatus = findCol(prmH, 'ASSIGNMENT STATUS', 'assignment status', 'status') || '';
 
   var foxH = Object.keys(foxRows[0] || {});
   var foxColUser = findCol(foxH, 'USER_NAME', 'user_name', 'username');
