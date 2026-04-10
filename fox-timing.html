@@ -43,7 +43,7 @@ nav{position:fixed;top:0;left:0;right:0;height:52px;background:rgba(13,15,14,0.8
 .fp-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
 .fp-arr{color:var(--muted);font-size:10px;padding:0 4px;background:var(--bg2)}
 .upload-s{padding:32px 0 24px}
-.upload-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.upload-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden}
 .ucard{background:var(--bg2);padding:24px 22px 20px}
 .ucard-label{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .ucard-ico{width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-weight:700;font-size:12px;flex-shrink:0;border:1px solid}
@@ -131,7 +131,9 @@ footer{border-top:1px solid var(--border);padding:26px 0}
 .fl a:hover{color:var(--text)}
 #results{padding:28px 0 0;display:none}
 #results.show{display:block}
+.b-mini{background:rgba(122,205,150,.08);color:#5DC49A;border:1px solid rgba(122,205,150,.2)}
 @media(max-width:800px){.upload-grid{grid-template-columns:1fr}}
+@media(max-width:1100px){.upload-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:900px){.kpi-strip{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:700px){.nav-links{display:none}.fi{flex-direction:column;gap:10px}}
 </style>
@@ -212,6 +214,21 @@ footer{border-top:1px solid var(--border);padding:26px 0}
         </div>
         <div class="dz-status" id="status-fox"><span class="dot"></span><span id="status-fox-txt"></span><button class="dz-clear" onclick="clearFile('fox')">&#10005;</button></div>
       </div>
+      <div class="ucard">
+        <div class="ucard-label">
+          <div class="ucard-ico" style="border-color:rgba(42,122,90,.4);background:rgba(42,122,90,.1);color:#5DC49A">MS</div>
+          <div>
+            <div class="ucard-name">Lista Minishop <span style="color:var(--muted);font-weight:400;font-size:10px">(opzionale)</span></div>
+            <div class="ucard-desc">Col SHOP_CODE = codice shop del minishop</div>
+          </div>
+        </div>
+        <div class="dropzone" id="dz-mini">
+          <input type="file" accept=".xlsx,.xls,.csv" id="input-mini">
+          <div class="dz-icon">&#8679;</div>
+          <div class="dz-txt"><strong>Carica lista minishop</strong><br>Se caricata, le righe RA senza FOX vengono classificate</div>
+        </div>
+        <div class="dz-status" id="status-mini" style="background:rgba(42,122,90,.07);border-color:rgba(42,122,90,.25)"><span class="dot" style="background:#5DC49A"></span><span id="status-mini-txt"></span><button class="dz-clear" onclick="clearFile('mini')">&#10005;</button></div>
+      </div>
     </div>
     <div class="run-bar">
       <button class="btn-run" id="btn-run" disabled onclick="runAnalysis()"><span id="btn-icon">&#9654;</span> Analizza</button>
@@ -270,8 +287,8 @@ footer{border-top:1px solid var(--border);padding:26px 0}
     <div class="us" id="notfox-s" style="display:none">
       <div class="ut" id="notfox-toggle" onclick="toggleSection('notfox')">
         <span class="arr">&#9658;</span>
-        <span style="font-family:var(--font-d);font-weight:600">Non ancora in FOX</span>
-        <span style="color:var(--muted);font-size:11px">&#8212; presenti in PRM ma non trovati in shop_access</span>
+        <span style="font-family:var(--font-d);font-weight:600">Non trovati in FOX</span>
+        <span style="color:var(--muted);font-size:11px">&#8212; presenti in PRM ma non trovati in shop_access (da verificare)</span>
         <span class="b b-m" id="notfox-count" style="margin-left:auto">0</span>
       </div>
       <div class="ub" id="notfox-body">
@@ -282,6 +299,20 @@ footer{border-top:1px solid var(--border);padding:26px 0}
       </div>
     </div>
 
+    <div class="us" id="mini-s" style="display:none">
+      <div class="ut" id="mini-toggle" onclick="toggleSection('mini')">
+        <span class="arr">&#9658;</span>
+        <span style="font-family:var(--font-d);font-weight:600">Minishop &#8212; assenza attesa in FOX</span>
+        <span style="color:var(--muted);font-size:11px">&#8212; shop code presente nella lista minishop, non va in FOX</span>
+        <span class="b b-mini" id="mini-count" style="margin-left:auto">0</span>
+      </div>
+      <div class="ub" id="mini-body">
+        <div class="tbl-scroll">
+          <table><thead><tr><th>Nominativo</th><th>Utente AD</th><th>Shop</th><th>Region</th><th>Inserito da</th><th>Data attivazione RA</th></tr></thead>
+          <tbody id="mini-rows"></tbody></table>
+        </div>
+      </div>
+    </div>
     <div class="us" id="notprm-s" style="display:none">
       <div class="ut" id="notprm-toggle" onclick="toggleSection('notprm')">
         <span class="arr">&#9658;</span>
@@ -315,9 +346,9 @@ footer{border-top:1px solid var(--border);padding:26px 0}
 <script>
 document.getElementById('yr').textContent = new Date().getFullYear();
 
-const RAW = { ra: null, prm: null, fox: null };
+const RAW = { ra: null, prm: null, fox: null, mini: null };
 const state = {
-  matched: [], notFox: [], notPrm: [],
+  matched: [], notFox: [], minishop: [], notPrm: [],
   filtered: [],
   sort: { col: 'delta', dir: 'asc' },
   slaOnly: false,
@@ -425,12 +456,14 @@ function checkReady() {
   var ok = RAW.ra && RAW.prm && RAW.fox;
   document.getElementById('btn-run').disabled = !ok;
   var missing = ['ra','prm','fox'].filter(function(k){ return !RAW[k]; }).map(function(k){ return k.toUpperCase(); });
-  document.getElementById('run-hint').textContent = ok ? 'Tutti i file caricati. Pronto per l\'analisi.' : 'In attesa: ' + missing.join(', ');
+  var hint = ok ? (RAW.mini ? 'Tutti i file caricati (minishop incluso). Pronto.' : 'File obbligatori caricati. Minishop opzionale.') : 'In attesa: ' + missing.join(', ');
+  document.getElementById('run-hint').textContent = hint;
 }
 
 setupDZ('dz-ra','input-ra','ra');
 setupDZ('dz-prm','input-prm','prm');
 setupDZ('dz-fox','input-fox','fox');
+setupDZ('dz-mini','input-mini','mini');
 
 function runAnalysis() {
   document.getElementById('btn-icon').innerHTML = '<span class="spin"></span>';
@@ -443,6 +476,14 @@ function runAnalysis() {
 
 function doAnalysis() {
   var raRows = RAW.ra, prmRows = RAW.prm, foxRows = RAW.fox;
+
+  // Indice minishop: da colonna C (indice 2) oppure prima colonna con "codice"
+  var miniSet = {};
+  if (RAW.mini && RAW.mini.length) {
+    var miniH = Object.keys(RAW.mini[0] || {});
+    var miniCol = findCol(miniH, 'SHOP_CODE', 'shop_code') || miniH[3] || miniH[0]; // col D = SHOP_CODE
+    RAW.mini.forEach(function(r){ var v = normShop(colVal(r, miniCol)); if (v) miniSet[v] = 1; });
+  }
 
   var raH = Object.keys(raRows[0] || {});
   var raColLast  = findCol(raH, 'cognome');
@@ -486,7 +527,7 @@ function doAnalysis() {
     if (!foxIdx[k]) foxIdx[k] = r;
   }
 
-  var matched = [], notFox = [], notPrm = [];
+  var matched = [], notFox = [], notPrm = [], minishop = [];
   var regions = {}, raNames = {};
 
   // Deduplica RA per cognome+nome+shop
@@ -537,12 +578,16 @@ function doAnalysis() {
         var delta = daysBetween(raDateAct, foxUpdate);
         matched.push({ nome:nomeCognome, user:colVal(pm,prmColAD), shop:prmShop, shopDesc:shopDesc, region:region, raName:raName, startDate:raDateAct, foxUpdate:foxUpdate, delta:delta });
       } else {
-        notFox.push({ nome:nomeCognome, user:colVal(pm,prmColAD), shop:prmShop, shopDesc:shopDesc, region:region, raName:raName, startDate:raDateAct });
+        if (RAW.mini && miniSet[prmShop]) {
+          minishop.push({ nome:nomeCognome, user:colVal(pm,prmColAD), shop:prmShop, shopDesc:shopDesc, region:region, raName:raName, startDate:raDateAct });
+        } else {
+          notFox.push({ nome:nomeCognome, user:colVal(pm,prmColAD), shop:prmShop, shopDesc:shopDesc, region:region, raName:raName, startDate:raDateAct });
+        }
       }
     }
   }
 
-  state.matched = matched; state.notFox = notFox; state.notPrm = notPrm;
+  state.matched = matched; state.notFox = notFox; state.minishop = minishop; state.notPrm = notPrm;
 
   // KPI (solo delta >= 0 per media/mediana)
   var deltas = matched.filter(function(r){ return r.delta !== null && r.delta >= 0; }).map(function(r){ return r.delta; });
@@ -570,6 +615,13 @@ function doAnalysis() {
     document.getElementById('notfox-s').style.display = '';
     document.getElementById('notfox-count').textContent = notFox.length;
     document.getElementById('notfox-rows').innerHTML = notFox.map(function(r){
+      return '<tr><td class="cw">'+r.nome+'</td><td style="font-size:10px;color:var(--muted)">'+r.user+'</td><td>'+r.shop+(r.shopDesc?'<span style="color:var(--muted);font-size:10px;display:block">'+r.shopDesc+'</span>':'')+'</td><td style="font-size:10.5px">'+r.region+'</td><td style="font-size:10.5px;color:var(--muted)">'+r.raName+'</td><td>'+fmtDate(r.startDate)+'</td></tr>';
+    }).join('');
+  }
+  if (minishop.length) {
+    document.getElementById('mini-s').style.display = '';
+    document.getElementById('mini-count').textContent = minishop.length;
+    document.getElementById('mini-rows').innerHTML = minishop.map(function(r){
       return '<tr><td class="cw">'+r.nome+'</td><td style="font-size:10px;color:var(--muted)">'+r.user+'</td><td>'+r.shop+(r.shopDesc?'<span style="color:var(--muted);font-size:10px;display:block">'+r.shopDesc+'</span>':'')+'</td><td style="font-size:10.5px">'+r.region+'</td><td style="font-size:10.5px;color:var(--muted)">'+r.raName+'</td><td>'+fmtDate(r.startDate)+'</td></tr>';
     }).join('');
   }
