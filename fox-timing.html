@@ -481,7 +481,7 @@ function doAnalysis() {
   var miniSet = {};
   if (RAW.mini && RAW.mini.length) {
     var miniH = Object.keys(RAW.mini[0] || {});
-    var miniCol = findCol(miniH, 'SHOP_CODE', 'shop_code') || miniH[3] || miniH[0]; // col D = SHOP_CODE
+    var miniCol = findCol(miniH, 'DAYCENTER_CODE', 'daycenter_code') || miniH[2] || miniH[0]; // col C = DAYCENTER_CODE
     RAW.mini.forEach(function(r){ var v = normShop(colVal(r, miniCol)); if (v) miniSet[v] = 1; });
   }
 
