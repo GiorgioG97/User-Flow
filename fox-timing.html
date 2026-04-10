@@ -153,7 +153,7 @@ footer{border-top:1px solid var(--border);padding:26px 0}
   <div class="hdr">
     <div class="eyebrow">KPI · Propagazione</div>
     <h1>FOX <em>Timing</em></h1>
-    <p>Per ogni inserimento nel file <strong>Regional / HR</strong>, risale allutente su <strong>Oracle PRM</strong> (cognome+nome) per ottenere AD Domain e Shop Code, poi verifica quando lutenza e scesa in <strong>FOX</strong>. Il delta e <strong>DT_UPDATE FOX &amp;minus; Data attivazione RA</strong>.</p>
+    <p>Per ogni inserimento nel file <strong>Regional / HR</strong>, risale allutente su <strong>Oracle PRM</strong> (cognome+nome) per ottenere AD Domain e Shop Code, poi verifica quando lutenza e scesa in <strong>FOX</strong>. Il delta e <strong>DT_INSERT FOX &amp;minus; Data attivazione RA</strong>.</p>
     <div class="flow-pill">
       <div class="fp-step"><span class="fp-dot" style="background:var(--ra-col)"></span>RA / HR</div>
       <div class="fp-arr">&#8594;</div>
@@ -256,7 +256,7 @@ footer{border-top:1px solid var(--border);padding:26px 0}
               <th onclick="sortBy('region')" data-col="region">Region</th>
               <th onclick="sortBy('raName')" data-col="raName">Inserito da</th>
               <th onclick="sortBy('startDate')" data-col="startDate">Data attivazione RA</th>
-              <th onclick="sortBy('foxUpdate')" data-col="foxUpdate">DT_UPDATE FOX</th>
+              <th onclick="sortBy('foxUpdate')" data-col="foxUpdate">DT_INSERT FOX</th>
               <th onclick="sortBy('delta')" data-col="delta" class="sa">&#916; Giorni</th>
               <th>SLA</th>
             </tr>
@@ -463,7 +463,7 @@ function doAnalysis() {
   var foxH = Object.keys(foxRows[0] || {});
   var foxColUser = findCol(foxH, 'USER_NAME', 'user_name', 'username');
   var foxColShop = findCol(foxH, 'ACCESS_CODE', 'access_code', 'shop');
-  var foxColUpd  = findCol(foxH, 'DT_UPDATE', 'dt_update');
+  var foxColUpd  = findCol(foxH, 'DT_INSERT', 'dt_insert');
 
   // Indice PRM: cognome+nome -> [righe]
   var prmByName = {};
@@ -719,7 +719,7 @@ function toggleSection(id) {
 function exportCSV() {
   var rows = state.filtered;
   if (!rows.length) return;
-  var hdr = ['Nominativo','Utente AD','Shop','Descrizione Shop','Region','Inserito da','Data attivazione RA','DT_UPDATE FOX','Delta Giorni','SLA'];
+  var hdr = ['Nominativo','Utente AD','Shop','Descrizione Shop','Region','Inserito da','Data attivazione RA','DT_INSERT FOX','Delta Giorni','SLA'];
   var lines = [hdr.join(';')];
   rows.forEach(function(r){
     var sla = r.delta===null?'N/D':r.delta<0?'ANTE':r.delta<=7?'OK':'VIOLATA';
