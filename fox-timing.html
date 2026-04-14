@@ -561,31 +561,51 @@ function doAnalysis() {
       continue;
     }
 
-    var prmFiltered = raShop ? prmMatches.filter(function(p){ return normShop(colVal(p, prmColShop)) === raShop; }) : prmMatches;
-    var prmSet = prmFiltered.length > 0 ? prmFiltered : prmMatches;
+    // Cerca in PRM SOLO la riga che corrisponde allo shop del file RA
+    // (non facciamo fallback su altri shop: evita match storici sbagliati)
+    var prmCandidates = raShop
+      ? prmMatches.filter(function(p){ return normShop(colVal(p, prmColShop)) === raShop; })
+      : prmMatches;
 
-    for (var pi = 0; pi < prmSet.length; pi++) {
-      var pm = prmSet[pi];
-      var adUser  = norm(colVal(pm, prmColAD));
-      var prmShop = normShop(colVal(pm, prmColShop));
-      var startDate = parseDate(colVal(pm, prmColStart));
-      var region   = colVal(pm, prmColReg);
-      var shopDesc = colVal(pm, prmColShopD);
-      if (region) regions[region] = 1;
+    if (prmCandidates.length === 0) {
+      // Nessuna riga PRM per questo utente+shop specifico
+      notPrm.push({ nome:nomeCognome, shop:raShop, dateAct:raDateAct, raName:raName });
+      continue;
+    }
 
-      var foxKey = adUser + '||' + prmShop;
-      var foxRow = foxIdx[foxKey];
+    // Tra le candidate, prendi UNA sola riga: ACTIVE > più recente per START DATE
+    var pm = prmCandidates[0];
+    for (var pi = 1; pi < prmCandidates.length; pi++) {
+      var cand = prmCandidates[pi];
+      var curActive  = (colVal(pm,   prmColStatus) || '').toUpperCase() === 'ACTIVE';
+      var candActive = (colVal(cand, prmColStatus) || '').toUpperCase() === 'ACTIVE';
+      if (!curActive && candActive) {
+        pm = cand;
+      } else if (curActive === candActive) {
+        var dCur  = parseDate(colVal(pm,   prmColStart));
+        var dCand = parseDate(colVal(cand, prmColStart));
+        if (dCand && dCur && dCand > dCur) pm = cand;
+      }
+    }
 
-      if (foxRow) {
-        var foxUpdate = parseDate(colVal(foxRow, foxColUpd));
-        var delta = daysBetween(raDateAct, foxUpdate);
-        matched.push({ nome:nomeCognome, user:colVal(pm,prmColAD), shop:prmShop, shopDesc:shopDesc, region:region, raName:raName, startDate:raDateAct, foxUpdate:foxUpdate, delta:delta });
+    var adUser   = norm(colVal(pm, prmColAD));
+    var prmShop  = normShop(colVal(pm, prmColShop));
+    var region   = colVal(pm, prmColReg);
+    var shopDesc = colVal(pm, prmColShopD);
+    if (region) regions[region] = 1;
+
+    var foxKey = adUser + '||' + prmShop;
+    var foxRow = foxIdx[foxKey];
+
+    if (foxRow) {
+      var foxUpdate = parseDate(colVal(foxRow, foxColUpd));
+      var delta = daysBetween(raDateAct, foxUpdate);
+      matched.push({ nome:nomeCognome, user:colVal(pm,prmColAD), shop:prmShop, shopDesc:shopDesc, region:region, raName:raName, startDate:raDateAct, foxUpdate:foxUpdate, delta:delta });
+    } else {
+      if (RAW.mini && miniSet[prmShop]) {
+        minishop.push({ nome:nomeCognome, user:colVal(pm,prmColAD), shop:prmShop, shopDesc:shopDesc, region:region, raName:raName, startDate:raDateAct });
       } else {
-        if (RAW.mini && miniSet[prmShop]) {
-          minishop.push({ nome:nomeCognome, user:colVal(pm,prmColAD), shop:prmShop, shopDesc:shopDesc, region:region, raName:raName, startDate:raDateAct });
-        } else {
-          notFox.push({ nome:nomeCognome, user:colVal(pm,prmColAD), shop:prmShop, shopDesc:shopDesc, region:region, raName:raName, startDate:raDateAct });
-        }
+        notFox.push({ nome:nomeCognome, user:colVal(pm,prmColAD), shop:prmShop, shopDesc:shopDesc, region:region, raName:raName, startDate:raDateAct });
       }
     }
   }
