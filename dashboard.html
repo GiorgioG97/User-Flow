@@ -99,7 +99,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
 .fsel{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:5px 9px;color:var(--text);font-family:var(--fm);font-size:11px;outline:none;cursor:pointer}
 .fsel:focus{border-color:var(--accent)}
-input[type=date].fsel{color-scheme:dark;}
 .count-lbl{margin-left:auto;font-size:11px;color:var(--muted)}
 .btn-reset{background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:var(--fm);font-size:11px;cursor:pointer;transition:all .12s}
 .btn-reset:hover{border-color:var(--accent);color:var(--accent)}
@@ -108,10 +107,6 @@ input[type=date].fsel{color-scheme:dark;}
 .tbl-wrap{overflow-x:auto;max-height:calc(100vh - 200px);overflow-y:auto}
 table{width:100%;border-collapse:collapse;font-size:11.5px}
 th{font-size:10px;font-weight:400;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg2);z-index:2}
-th.sortable{cursor:pointer;user-select:none}
-th.sortable:hover{color:var(--text)}
-th.sort-asc::after{content:' ↑';color:var(--accent)}
-th.sort-desc::after{content:' ↓';color:var(--accent)}
 td{padding:6px 10px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
@@ -133,7 +128,6 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
 .sc{display:inline-flex;align-items:center;justify-content:center;width:22px;height:18px;border-radius:3px;font-size:9px;font-weight:600}
 .sc-y{background:rgba(91,174,118,.15);color:#7ACD96}
 .sc-n{background:rgba(255,255,255,.04);color:var(--bg4)}
-.sc-p{background:rgba(232,162,58,.18);color:#F0BE6A}
 
 /* ── ALERT ── */
 .alert{display:flex;gap:10px;padding:11px 14px;border-radius:6px;margin-bottom:14px;font-size:11.5px;line-height:1.75}
@@ -174,7 +168,6 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
   <div class="sb-logo">
     <div class="sb-title">UserRecon</div>
     <div class="sb-sub">Oracle PRM · FOX · ServiceNow · AD</div>
-
   </div>
 
   <div class="sb-section">Viste</div>
@@ -241,6 +234,16 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
       <div class="upload-title">User Reconciliation</div>
       <div class="upload-sub">Carica i 4 export per confrontare le utenze di Oracle PRM, FOX, ServiceNow e Active Directory</div>
 
+      <a href="https://amplifon.sharepoint.com/sites/ITItaly/Documenti%20condivisi/Forms/AllItems.aspx?id=%2Fsites%2FITItaly%2FDocumenti%20condivisi%2FGeneral%2F16%20%2D%20IT%20Operations%2FUser%20Check%20Files&viewid=d33ecb7c%2D0cd5%2D434c%2D94e8%2Dff8371f850e3" target="_blank" style="display:flex;align-items:center;gap:12px;padding:11px 20px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:6px;text-decoration:none;color:var(--text);font-size:12px;margin-bottom:28px;transition:border-color .15s;max-width:960px;width:100%" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='rgba(255,255,255,.1)'">
+        <span style="width:32px;height:32px;background:rgba(0,114,239,.15);border:1px solid rgba(0,114,239,.3);border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6H12L10 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V8C22 6.9 21.1 6 20 6Z" fill="#0072EF" opacity=".8"/></svg>
+        </span>
+        <div style="text-align:left">
+          <div style="font-family:var(--fd);font-weight:600;font-size:12px;margin-bottom:2px">File export su SharePoint</div>
+          <div style="color:var(--muted);font-size:10px">IT Italy · General · IT Operations · User Check Files &nbsp;&#8599;</div>
+        </div>
+      </a>
+
       <div class="upload-grid" style="grid-template-columns:repeat(4,1fr);max-width:960px">
         <div class="upload-zone" id="zone-prm">
           <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('prm',this)">
@@ -283,10 +286,11 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
       <div class="mc" onclick="nav('matching')">
         <div class="mc-val" id="m-total">–</div>
         <div class="mc-lbl">Utenti unici totali</div>
-        <div class="mc-sub" style="color:var(--muted)">dai 4 sistemi combinati</div>
+        <div class="mc-sub" style="color:var(--muted)">dai 3 sistemi combinati</div>
       </div>
-      <div class="mc" onclick="filterAndGo('all4')">        <div class="mc-val" style="color:#7ACD96" id="m-all3">–</div>
-        <div class="mc-lbl">In tutti e 4 i sistemi</div>
+      <div class="mc" onclick="filterAndGo('all3')">
+        <div class="mc-val" style="color:#7ACD96" id="m-all3">–</div>
+        <div class="mc-lbl">In tutti e 3 i sistemi</div>
         <div class="mc-sub" style="color:#7ACD96" id="m-all3-pct">–</div>
       </div>
       <div class="mc" onclick="filterAndGo('2sys')">
@@ -340,8 +344,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
     <div class="filter-bar">
       <select class="fsel" id="f-cov" onchange="applyFilters()">
         <option value="">Tutta la copertura</option>
-        <option value="all4">Tutti e 4</option>
-        <option value="3sys">In 3 sistemi</option>
+        <option value="all3">Tutti e 3</option>
         <option value="2sys">In 2 sistemi</option>
         <option value="1sys">In 1 sistema</option>
       </select>
@@ -357,14 +360,8 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
         <option value="active">Attivo in PRM</option>
         <option value="inactive">Inattivo in PRM</option>
       </select>
-      <input type="date" class="fsel" id="f-date-from" oninput="applyFilters()" style="width:130px;cursor:pointer" title="Start PRM da">
-      <input type="date" class="fsel" id="f-date-to"   oninput="applyFilters()" style="width:130px;cursor:pointer" title="Start PRM a">
       <button class="btn-reset" onclick="resetFilters()">✕ Reset</button>
       <span class="count-lbl" id="match-count">– utenti</span>
-      <div style="margin-left:auto;display:flex;gap:6px">
-        <button class="btn-reset" onclick="exportTable('csv')" title="Esporta CSV">↓ CSV</button>
-        <button class="btn-reset" onclick="exportTable('xlsx')" title="Esporta Excel">↓ Excel</button>
-      </div>
     </div>
     <div class="tbl-wrap">
       <table>
@@ -377,7 +374,7 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
           <th style="text-align:center">Snow</th>
           <th style="text-align:center">AD</th>
           <th>Ruolo</th>
-          <th class="sortable" id="th-startdate" onclick="sortByStartDate()">Start Date</th>
+          <th>Area</th>
           <th>Copertura</th>
         </tr></thead>
         <tbody id="match-body"></tbody>
@@ -638,36 +635,6 @@ function runAnalysis() {
   const foxIdx = idx(RAW.fox, foxH, 'email');
   const snwIdx = idx(RAW.snow, snwH, 'email');
 
-  // prmIncomplete: righe PRM con status ACTIVE ma email mancante
-  // Itera direttamente RAW.prm per trovare le righe senza email
-  const prmIncomplete = {};
-  RAW.prm.forEach(row2 => {
-    const emailVal = String(row2[getCol(prmH, 'email')] || '').trim();
-    if (emailVal) return; // ha già email → gestita da prmIdx
-    const status2 = String(row2[prmColStatus] || '').trim().toUpperCase();
-    if (status2 !== 'ACTIVE') return;
-    const fn = String(row2[getCol(prmH, 'firstname')] || '').toLowerCase().trim();
-    const ln = String(row2[getCol(prmH, 'lastname')] || '').toLowerCase().trim();
-    if (!fn && !ln) return;
-    // cerca in AD per nome/cognome
-    let matchedEmail = null;
-    RAW.ad.forEach(ar => {
-      if (matchedEmail) return;
-      const adEmailCol = getCol(adH, 'email');
-      const adUpnCol   = adH.find(h => h.toLowerCase().trim() === 'upn');
-      const adEmail = String(ar[adEmailCol] || ar[adUpnCol] || '').trim().toLowerCase();
-      if (!adEmail) return;
-      const adNameCol = adH.find(h => h.toLowerCase().trim() === 'nomeutente') || getCol(adH, 'fullname');
-      const adName = String(ar[adNameCol] || '').toLowerCase();
-      const c1 = adName.includes(fn) && adName.includes(ln);
-      const c2 = fn.length > 0 && ln.length > 0 && adEmail.includes(fn[0]) && adEmail.includes(ln);
-      if (c1 || c2) matchedEmail = adEmail;
-    });
-    if (matchedEmail && !prmIdx[matchedEmail]) {
-      prmIncomplete[matchedEmail] = row2;
-    }
-  });
-
   // AD index: keyed by email (UPN/Email col), only Stato='Abilitato'
   const adColStatus = getCol(adH, 'status');
   const adIdx = {};
@@ -681,23 +648,19 @@ function runAnalysis() {
     if (e) adIdx[e] = r;
   });
 
-  const allEmails = [...new Set([...Object.keys(prmIdx), ...Object.keys(prmIncomplete), ...Object.keys(foxIdx), ...Object.keys(snwIdx), ...Object.keys(adIdx)])].sort();
+  const allEmails = [...new Set([...Object.keys(prmIdx), ...Object.keys(foxIdx), ...Object.keys(snwIdx), ...Object.keys(adIdx)])].sort();
 
   DATA = allEmails.map(e => {
-    const p = prmIdx[e] || null;
-    const pInc = !p && prmIncomplete[e] ? prmIncomplete[e] : null;
-    const pEff = p || pInc; // record PRM effettivo (completo o incompleto)
-    const f = foxIdx[e], s = snwIdx[e], a = adIdx[e];
+    const p = prmIdx[e], f = foxIdx[e], s = snwIdx[e], a = adIdx[e];
     const in_prm = !!p, in_fox = !!f, in_snow = !!s, in_ad = !!a;
-    const prm_incomplete = !!pInc; // ACTIVE in PRM ma email mancante
-    const sys_count = [in_prm || prm_incomplete, in_fox, in_snow, in_ad].filter(Boolean).length;
+    const sys_count = [in_prm, in_fox, in_snow].filter(Boolean).length;
 
-    const name_prm = pEff ? (getVal(pEff, prmH, 'firstname') + ' ' + getVal(pEff, prmH, 'lastname')).trim() || getVal(pEff, prmH, 'fullname') : '';
+    const name_prm = p ? (getVal(p, prmH, 'firstname') + ' ' + getVal(p, prmH, 'lastname')).trim() || getVal(p, prmH, 'fullname') : '';
     const name_fox = f ? getVal(f, foxH, 'fullname') || (getVal(f, foxH, 'firstname') + ' ' + getVal(f, foxH, 'lastname')).trim() : '';
     const name_snow = s ? getVal(s, snwH, 'fullname') || (getVal(s, snwH, 'firstname') + ' ' + getVal(s, snwH, 'lastname')).trim() : '';
     const name = name_prm || name_snow || name_fox;
 
-    const ad_prm  = pEff ? normUser(getVal(pEff, prmH, 'ad_domain')) : '';
+    const ad_prm  = p ? normUser(getVal(p, prmH, 'ad_domain')) : '';
     const ad_fox  = f ? normUser(getVal(f, foxH, 'ad_domain') || getVal(f, foxH, 'username')) : '';
     const ad_snow = s ? normUser(getVal(s, snwH, 'ad_domain')) : '';
     const ad_vals = [ad_prm, ad_fox, ad_snow].filter(Boolean);
@@ -706,23 +669,23 @@ function runAnalysis() {
 
     return {
       email: e, name, name_prm, name_fox, name_snow,
-      in_prm, in_fox, in_snow, in_ad, prm_incomplete, sys_count,
+      in_prm, in_fox, in_snow, in_ad, sys_count,
       ad, ad_prm, ad_fox, ad_snow, ad_conflict,
       upn_ad:     a ? String(a[adH.find(h => h.toLowerCase().trim() === 'upn')] || '').trim() : '',
       status_ad:  a ? String(a[adColStatus] || '').trim() : '',
       ou_ad:      a ? String(a[adH.find(h => h.toLowerCase().trim() === 'ouprovenienza')] || '').trim() : '',
       date_ad:    a ? String(a[adH.find(h => h.toLowerCase().trim() === 'datacreazione')] || '').trim() : '',
-      status_prm: pEff ? getVal(pEff, prmH, 'status') : '',
+      status_prm: p ? getVal(p, prmH, 'status') : '',
       status_fox: f ? getVal(f, foxH, 'status') : '',
       status_snow: s ? getVal(s, snwH, 'status') : '',
-      start_prm: pEff ? getVal(pEff, prmH, 'start_date') : '',
+      start_prm: p ? getVal(p, prmH, 'start_date') : '',
       start_fox: f ? getVal(f, foxH, 'start_date') : '',
       start_snow: s ? getVal(s, snwH, 'start_date') : '',
-      job_title: pEff ? getVal(pEff, prmH, 'job_title') : (s ? getVal(s, snwH, 'job_title') : ''),
-      person_type: pEff ? getVal(pEff, prmH, 'person_type') : '',
-      area: pEff ? getVal(pEff, prmH, 'area') : '',
-      shop: pEff ? getVal(pEff, prmH, 'shop') : '',
-      employee_id: pEff ? getVal(pEff, prmH, 'employee_id') : (f ? getVal(f, foxH, 'employee_id') : ''),
+      job_title: p ? getVal(p, prmH, 'job_title') : (s ? getVal(s, snwH, 'job_title') : ''),
+      person_type: p ? getVal(p, prmH, 'person_type') : '',
+      area: p ? getVal(p, prmH, 'area') : '',
+      shop: p ? getVal(p, prmH, 'shop') : '',
+      employee_id: p ? getVal(p, prmH, 'employee_id') : (f ? getVal(f, foxH, 'employee_id') : ''),
     };
   });
 
@@ -751,15 +714,14 @@ function runAnalysis() {
 // ═══════════════════════════════════════════
 function renderOverview() {
   const total = DATA.length;
-  const all4  = DATA.filter(r => r.sys_count === 4).length;
-  const three = DATA.filter(r => r.sys_count === 3).length;
+  const all3  = DATA.filter(r => r.sys_count === 3).length;
   const two   = DATA.filter(r => r.sys_count === 2).length;
   const one   = DATA.filter(r => r.sys_count === 1).length;
 
   document.getElementById('m-total').textContent = total;
-  document.getElementById('m-all3').textContent = all4;
-  document.getElementById('m-all3-pct').textContent = Math.round(all4/total*100) + '% del totale';
-  document.getElementById('m-2sys').textContent = two + three;
+  document.getElementById('m-all3').textContent = all3;
+  document.getElementById('m-all3-pct').textContent = Math.round(all3/total*100) + '% del totale';
+  document.getElementById('m-2sys').textContent = two;
   document.getElementById('m-1sys').textContent = one;
 
   // destroy old charts
@@ -789,21 +751,13 @@ function renderOverview() {
   });
 
   const COMBOS = [
-    { label: 'Tutti e 4',             check: r => (r.in_prm||r.prm_incomplete) && r.in_fox && r.in_snow && r.in_ad,  color: '#5BAE76', diag: '✓ Completamente sincronizzato' },
-    { label: 'PRM+FOX+Snow',          check: r => (r.in_prm||r.prm_incomplete) && r.in_fox && r.in_snow && !r.in_ad, color: '#5BAE76', diag: '⚠ Manca in Active Directory' },
-    { label: 'PRM+FOX+AD',            check: r => (r.in_prm||r.prm_incomplete) && r.in_fox && !r.in_snow && r.in_ad, color: '#E8A23A', diag: '⚠ Manca in ServiceNow' },
-    { label: 'PRM+Snow+AD',           check: r => (r.in_prm||r.prm_incomplete) && !r.in_fox && r.in_snow && r.in_ad, color: '#E8A23A', diag: '⚠ Manca in FOX' },
-    { label: 'FOX+Snow+AD',           check: r => !(r.in_prm||r.prm_incomplete) && r.in_fox && r.in_snow && r.in_ad, color: '#D95B5B', diag: '✗ Manca in Oracle PRM' },
-    { label: 'PRM + FOX',             check: r => (r.in_prm||r.prm_incomplete) && r.in_fox && !r.in_snow && !r.in_ad, color: '#E8A23A', diag: '⚠ Manca in ServiceNow e AD' },
-    { label: 'PRM + Snow',            check: r => (r.in_prm||r.prm_incomplete) && !r.in_fox && r.in_snow && !r.in_ad, color: '#E8A23A', diag: '⚠ Manca in FOX e AD' },
-    { label: 'PRM + AD',              check: r => (r.in_prm||r.prm_incomplete) && !r.in_fox && !r.in_snow && r.in_ad, color: '#E8A23A', diag: '⚠ Manca in FOX e ServiceNow' },
-    { label: 'FOX + Snow',            check: r => !(r.in_prm||r.prm_incomplete) && r.in_fox && r.in_snow && !r.in_ad, color: '#D95B5B', diag: '✗ Manca in PRM e AD' },
-    { label: 'FOX + AD',              check: r => !(r.in_prm||r.prm_incomplete) && r.in_fox && !r.in_snow && r.in_ad, color: '#D95B5B', diag: '✗ Manca in PRM e Snow' },
-    { label: 'Snow + AD',             check: r => !(r.in_prm||r.prm_incomplete) && !r.in_fox && r.in_snow && r.in_ad, color: '#D95B5B', diag: '✗ Manca in PRM e FOX' },
-    { label: 'Solo Oracle PRM',       check: r => (r.in_prm||r.prm_incomplete) && !r.in_fox && !r.in_snow && !r.in_ad, color: '#C74634', diag: '◉ In attesa sync' },
-    { label: 'Solo FOX',              check: r => !(r.in_prm||r.prm_incomplete) && r.in_fox && !r.in_snow && !r.in_ad, color: '#1B5DAA', diag: '◉ Non in HCM né Snow' },
-    { label: 'Solo ServiceNow',       check: r => !(r.in_prm||r.prm_incomplete) && !r.in_fox && r.in_snow && !r.in_ad, color: '#81B5A1', diag: '◉ Orfano Snow' },
-    { label: 'Solo AD',               check: r => !(r.in_prm||r.prm_incomplete) && !r.in_fox && !r.in_snow && r.in_ad, color: '#2A7A5A', diag: '◉ Solo in Active Directory' },
+    { label: 'Tutti e 3',           check: r => r.in_prm && r.in_fox && r.in_snow,   color: '#5BAE76', diag: '✓ Sincronizzato' },
+    { label: 'PRM + FOX',           check: r => r.in_prm && r.in_fox && !r.in_snow,  color: '#E8A23A', diag: '⚠ Manca in ServiceNow' },
+    { label: 'PRM + Snow',          check: r => r.in_prm && !r.in_fox && r.in_snow,  color: '#E8A23A', diag: '⚠ Manca in FOX (16:30)' },
+    { label: 'FOX + Snow',          check: r => !r.in_prm && r.in_fox && r.in_snow,  color: '#D95B5B', diag: '✗ Manca in Oracle PRM' },
+    { label: 'Solo Oracle PRM',     check: r => r.in_prm && !r.in_fox && !r.in_snow, color: '#C74634', diag: '◉ In attesa sync (21:00)' },
+    { label: 'Solo FOX',            check: r => !r.in_prm && r.in_fox && !r.in_snow, color: '#1B5DAA', diag: '◉ Non in HCM né Snow' },
+    { label: 'Solo ServiceNow',     check: r => !r.in_prm && !r.in_fox && r.in_snow, color: '#81B5A1', diag: '◉ Orfano Snow' },
   ];
 
   const mb = document.getElementById('matrix-body');
@@ -859,7 +813,7 @@ function renderGaps() {
   }
 
   renderGapCard('gap-only-fox', 'gap-fox-count', 'body-only-fox',
-    DATA.filter(r => !(r.in_prm||r.prm_incomplete) && r.in_fox && !r.in_snow),
+    DATA.filter(r => !r.in_prm && r.in_fox && !r.in_snow),
     r => `<tr onclick="openDetail('${esc(r.email)}')">
       <td>${r.name || '–'}</td>
       <td style="color:var(--muted)">${r.email}</td>
@@ -869,7 +823,7 @@ function renderGaps() {
   );
 
   renderGapCard('gap-prm-fox', 'gap-prm-fox-count', 'body-prm-fox',
-    DATA.filter(r => (r.in_prm||r.prm_incomplete) && r.in_fox && !r.in_snow),
+    DATA.filter(r => r.in_prm && r.in_fox && !r.in_snow),
     r => `<tr onclick="openDetail('${esc(r.email)}')">
       <td>${r.name||'–'}</td>
       <td style="color:var(--muted)">${r.email}</td>
@@ -881,7 +835,7 @@ function renderGaps() {
   );
 
   renderGapCard('gap-only-snow', 'gap-snow-count', 'body-only-snow',
-    DATA.filter(r => !(r.in_prm||r.prm_incomplete) && !r.in_fox && r.in_snow),
+    DATA.filter(r => !r.in_prm && !r.in_fox && r.in_snow),
     r => `<tr onclick="openDetail('${esc(r.email)}')">
       <td>${r.name||'–'}</td>
       <td style="color:var(--muted)">${r.email}</td>
@@ -892,7 +846,7 @@ function renderGaps() {
   );
 
   renderGapCard('gap-only-prm', 'gap-prm-count', 'body-only-prm',
-    DATA.filter(r => (r.in_prm||r.prm_incomplete) && !r.in_fox && !r.in_snow),
+    DATA.filter(r => r.in_prm && !r.in_fox && !r.in_snow),
     r => `<tr onclick="openDetail('${esc(r.email)}')">
       <td>${r.name||'–'}</td>
       <td style="color:var(--muted)">${r.email}</td>
@@ -904,7 +858,7 @@ function renderGaps() {
   );
 
   renderGapCard('gap-prm-snow', 'gap-prm-snow-count', 'body-prm-snow',
-    DATA.filter(r => (r.in_prm||r.prm_incomplete) && !r.in_fox && r.in_snow),
+    DATA.filter(r => r.in_prm && !r.in_fox && r.in_snow),
     r => `<tr onclick="openDetail('${esc(r.email)}')">
       <td>${r.name||'–'}</td>
       <td style="color:var(--muted)">${r.email}</td>
@@ -924,30 +878,24 @@ function renderMatchTable(rows) {
   document.getElementById('match-count').textContent = rows.length + ' utenti';
   const tbody = document.getElementById('match-body');
   tbody.innerHTML = rows.map(r => {
-    const cov = r.sys_count === 4 ? ['b-all','Tutti e 4'] : r.sys_count === 3 ? ['b-2','3 sistemi'] : r.sys_count === 2 ? ['b-2','2 sistemi'] : ['b-1','1 sistema'];
-    const prmCell = r.in_prm
-      ? `<span class="sc sc-y" title="Presente in PRM">✓</span>`
-      : r.prm_incomplete
-        ? `<span class="sc sc-p" title="Presente in PRM ma senza email">~</span>`
-        : `<span class="sc sc-n">–</span>`;
+    const cov = r.sys_count === 3 ? ['b-all','Tutti e 3'] : r.sys_count === 2 ? ['b-2','2 sistemi'] : ['b-1','1 sistema'];
     return `<tr onclick="openDetail('${esc(r.email)}')"
-      data-cov="${r.sys_count===4?'all4':r.sys_count===3?'3sys':r.sys_count===2?'2sys':'1sys'}"
-      data-prm="${(r.in_prm||r.prm_incomplete)?'1':'0'}"
+      data-cov="${r.sys_count===3?'all3':r.sys_count===2?'2sys':'1sys'}"
+      data-prm="${r.in_prm?'1':'0'}"
       data-fox="${r.in_fox?'1':'0'}"
       data-snow="${r.in_snow?'1':'0'}"
       data-ad="${r.in_ad?'1':'0'}"
       data-status="${(r.status_prm||'').toLowerCase()}"
-      data-start="${r.start_prm||''}"
       data-search="${(r.name+' '+r.email+' '+r.ad).toLowerCase()}">
       <td style="font-weight:500">${r.name||'–'}</td>
       <td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis">${r.email}</td>
       <td><code style="font-size:10px;color:var(--accent)">${r.ad||'–'}</code></td>
-      <td style="text-align:center">${prmCell}</td>
+      <td style="text-align:center"><span class="sc ${r.in_prm?'sc-y':'sc-n'}">${r.in_prm?'✓':'–'}</span></td>
       <td style="text-align:center"><span class="sc ${r.in_fox?'sc-y':'sc-n'}">${r.in_fox?'✓':'–'}</span></td>
       <td style="text-align:center"><span class="sc ${r.in_snow?'sc-y':'sc-n'}">${r.in_snow?'✓':'–'}</span></td>
       <td style="text-align:center"><span class="sc ${r.in_ad?'sc-y':'sc-n'}">${r.in_ad?'✓':'–'}</span></td>
       <td style="color:var(--muted);font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis">${r.job_title||'–'}</td>
-      <td style="color:var(--muted);font-size:11px">${r.start_prm||'–'}</td>
+      <td style="color:var(--muted);font-size:11px">${r.area||'–'}</td>
       <td><span class="badge ${cov[0]}">${cov[1]}</span></td>
     </tr>`;
   }).join('');
@@ -956,35 +904,11 @@ function renderMatchTable(rows) {
 // ═══════════════════════════════════════════
 // FILTERS
 // ═══════════════════════════════════════════
-function parseDate(s) {
-  if (!s) return null;
-  s = s.trim();
-  // formato input type=date: YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    const d = new Date(s);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  // formato PRM: DD-MM-YYYY o DD/MM/YYYY
-  const p = s.split(/[-\/]/);
-  if (p.length === 3) {
-    // se primo pezzo è 4 cifre → YYYY-MM-DD già gestito sopra
-    // altrimenti DD-MM-YYYY
-    const [a, b, c] = p;
-    const d = a.length === 4
-      ? new Date(+a, +b-1, +c)
-      : new Date(+c, +b-1, +a);
-    return isNaN(d.getTime()) ? null : d;
-  }
-  return null;
-}
-
 function applyFilters() {
-  const q    = (document.getElementById('globalSearch')?.value || '').toLowerCase();
-  const cov  = document.getElementById('f-cov')?.value || '';
-  const sys  = document.getElementById('f-sys')?.value || '';
-  const st   = document.getElementById('f-status')?.value || '';
-  const dfrom = parseDate(document.getElementById('f-date-from')?.value);
-  const dto   = parseDate(document.getElementById('f-date-to')?.value);
+  const q   = (document.getElementById('globalSearch')?.value || '').toLowerCase();
+  const cov = document.getElementById('f-cov')?.value || '';
+  const sys = document.getElementById('f-sys')?.value || '';
+  const st  = document.getElementById('f-status')?.value || '';
 
   const rows = document.querySelectorAll('#match-body tr');
   let visible = 0;
@@ -993,17 +917,7 @@ function applyFilters() {
     const matchCov = !cov || tr.dataset.cov === cov;
     const matchSys = !sys || tr.dataset[sys] === '1';
     const matchSt  = !st  || (st === 'active' ? tr.dataset.status === 'active' : tr.dataset.status !== 'active' && tr.dataset.status !== '');
-    let matchDate  = true;
-    if (dfrom || dto) {
-      const sd = parseDate(tr.dataset.start);
-      if (!sd) {
-        matchDate = false;
-      } else {
-        if (dfrom && sd < dfrom) matchDate = false;
-        if (dto   && sd > dto)   matchDate = false;
-      }
-    }
-    const show = matchQ && matchCov && matchSys && matchSt && matchDate;
+    const show = matchQ && matchCov && matchSys && matchSt;
     tr.style.display = show ? '' : 'none';
     if (show) visible++;
   });
@@ -1012,7 +926,6 @@ function applyFilters() {
 
 function resetFilters() {
   ['f-cov','f-sys','f-status'].forEach(id => document.getElementById(id).value = '');
-  ['f-date-from','f-date-to'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('globalSearch').value = '';
   applyFilters();
 }
@@ -1030,19 +943,18 @@ function openDetail(email) {
   const badges = document.getElementById('p-badges');
   badges.innerHTML = '';
   if (r.in_prm) badges.innerHTML += `<span class="badge b-prm">Oracle PRM</span> `;
-  else if (r.prm_incomplete) badges.innerHTML += `<span class="badge" style="background:rgba(232,162,58,.14);color:#F0BE6A">Oracle PRM ⚠ email mancante</span> `;
   if (r.in_fox) badges.innerHTML += `<span class="badge b-fox">FOX</span> `;
   if (r.in_snow) badges.innerHTML += `<span class="badge b-snow">ServiceNow</span> `;
   if (r.in_ad)  badges.innerHTML += `<span class="badge b-ad">Active Directory</span> `;
-  const covN = r.sys_count === 4 ? '<span class="badge b-all">Tutti e 4</span>' : r.sys_count === 3 ? '<span class="badge b-2">3 sistemi</span>' : r.sys_count === 2 ? '<span class="badge b-2">2 sistemi</span>' : '<span class="badge b-1">1 sistema</span>';
-  badges.innerHTML += covN;
+  const cov = r.sys_count === 3 ? '<span class="badge b-all">Tutti e 3</span>' : r.sys_count === 2 ? '<span class="badge b-2">2 sistemi</span>' : '<span class="badge b-1">1 sistema</span>';
+  badges.innerHTML += cov;
 
   const grid = document.getElementById('p-grid');
   grid.style.gridTemplateColumns = 'repeat(2,1fr)';
   grid.innerHTML = `
     <div class="panel-cell">
       <div class="pc-sys">Oracle PRM</div>
-      <div class="pc-val">${r.in_prm ? '<span style="color:#7ACD96">✓ Presente</span>' : r.prm_incomplete ? '<span style="color:#F0BE6A">~ Presente (email mancante)</span>' : '<span style="color:var(--muted)">– Assente</span>'}</div>
+      <div class="pc-val">${r.in_prm ? '<span style="color:#7ACD96">✓ Presente</span>' : '<span style="color:var(--muted)">– Assente</span>'}</div>
       ${r.ad_prm ? `<div class="pc-ad">AD: ${r.ad_prm}</div>` : ''}
       ${r.status_prm ? `<div class="pc-ad">Status: <span style="color:${r.status_prm==='ACTIVE'?'#7ACD96':'#E88080'}">${r.status_prm}</span></div>` : ''}
     </div>
@@ -1102,75 +1014,6 @@ function closePanel() {
 }
 
 function esc(s) { return s.replace(/'/g, "\\'"); }
-
-// ═══════════════════════════════════════════
-// SORT
-// ═══════════════════════════════════════════
-let sortDir = null; // null | 'asc' | 'desc'
-
-function sortByStartDate() {
-  sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-  const th = document.getElementById('th-startdate');
-  th.classList.remove('sort-asc','sort-desc');
-  th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
-
-  const tbody = document.getElementById('match-body');
-  const rows  = [...tbody.querySelectorAll('tr')];
-
-  rows.sort((a, b) => {
-    const da = parseDate(a.dataset.start);
-    const db = parseDate(b.dataset.start);
-    if (!da && !db) return 0;
-    if (!da) return 1;   // senza data → in fondo
-    if (!db) return -1;
-    return sortDir === 'asc' ? da - db : db - da;
-  });
-
-  rows.forEach(r => tbody.appendChild(r));
-}
-
-function exportTable(format) {
-  // Raccoglie solo le righe visibili
-  const rows = [...document.querySelectorAll('#match-body tr')]
-    .filter(tr => tr.style.display !== 'none');
-
-  const headers = ['Nome','Email','AD Domain','PRM','FOX','Snow','AD','Ruolo','Start Date PRM','Copertura'];
-
-  const data = rows.map(tr => {
-    const cells = tr.querySelectorAll('td');
-    return [
-      cells[0]?.textContent?.trim() || '',
-      cells[1]?.textContent?.trim() || '',
-      cells[2]?.textContent?.trim() || '',
-      tr.dataset.prm === '1' ? (tr.querySelector('.sc-p') ? '~' : '✓') : '–',
-      tr.dataset.fox  === '1' ? '✓' : '–',
-      tr.dataset.snow === '1' ? '✓' : '–',
-      tr.dataset.ad   === '1' ? '✓' : '–',
-      cells[7]?.textContent?.trim() || '',
-      cells[8]?.textContent?.trim() || '',
-      cells[9]?.textContent?.trim() || '',
-    ];
-  });
-
-  if (format === 'csv') {
-    const escape = v => `"${String(v).replace(/"/g,'""')}"`;
-    const lines  = [headers, ...data].map(row => row.map(escape).join(','));
-    const blob   = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'userrecon_' + new Date().toISOString().slice(0,10) + '.csv';
-    a.click();
-  } else {
-    // XLSX via libreria già caricata
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
-    // larghezze colonne
-    ws['!cols'] = [22,32,16,6,6,6,6,22,14,12].map(w => ({ wch: w }));
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'UserRecon');
-    XLSX.writeFile(wb, 'userrecon_' + new Date().toISOString().slice(0,10) + '.xlsx');
-  }
-}
-
 </script>
 </body>
 </html>
