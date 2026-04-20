@@ -618,6 +618,41 @@ function normUser(s) {
 }
 
 // ═══════════════════════════════════════════
+// DATE NORMALIZATION
+// ═══════════════════════════════════════════
+function normDate(val) {
+  if (!val || val === '') return '';
+  const s = String(val).trim();
+
+  // Excel serial number (e.g. 45000)
+  const num = Number(s);
+  if (!isNaN(num) && num > 20000 && num < 60000) {
+    // Excel epoch: Jan 1 1900 = 1, with leap-year bug offset
+    const d = new Date(Math.round((num - 25569) * 86400 * 1000));
+    if (!isNaN(d)) return d.toISOString().substring(0, 10);
+  }
+
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
+
+  // DD/MM/YYYY or DD-MM-YYYY
+  const dmy = s.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})/);
+  if (dmy) return `${dmy[3]}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;
+
+  // MM/DD/YYYY
+  const mdy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (mdy) {
+    const d = new Date(s);
+    if (!isNaN(d)) return d.toISOString().substring(0, 10);
+  }
+
+  // ISO with time: 2024-03-15T00:00:00
+  if (s.includes('T')) return s.substring(0, 10);
+
+  return s.substring(0, 10);
+}
+
+// ═══════════════════════════════════════════
 // ANALYSIS
 // ═══════════════════════════════════════════
 function runAnalysis() {
@@ -643,6 +678,10 @@ function runAnalysis() {
   // Tutte INACTIVE → non presente (non entra nell'indice).
   const prmColStatus  = getCol(prmH, 'status');
   const prmColPrimary = getCol(prmH, 'primary');
+
+  // Colonna AA = 27ª colonna (indice 26). XLSX legge con header row:
+  // se l'intestazione non matcha alias, usiamo direttamente la chiave della 27ª col
+  const prmColAA = prmH[26] || null; // colonna AA per posizione
   const prmAllRows = {};
   RAW.prm.forEach(r => {
     const e = normEmail(getVal(r, prmH, 'email'));
@@ -704,9 +743,9 @@ function runAnalysis() {
       status_prm: p ? getVal(p, prmH, 'status') : '',
       status_fox: f ? getVal(f, foxH, 'status') : '',
       status_snow: s ? getVal(s, snwH, 'status') : '',
-      start_prm: p ? getVal(p, prmH, 'start_date') : '',
-      start_fox: f ? getVal(f, foxH, 'start_date') : '',
-      start_snow: s ? getVal(s, snwH, 'start_date') : '',
+      start_prm: p ? normDate(prmColAA ? String(p[prmColAA] || '') : getVal(p, prmH, 'start_date')) : '',
+      start_fox: f ? normDate(getVal(f, foxH, 'start_date')) : '',
+      start_snow: s ? normDate(getVal(s, snwH, 'start_date')) : '',
       job_title: p ? getVal(p, prmH, 'job_title') : (s ? getVal(s, snwH, 'job_title') : ''),
       person_type: p ? getVal(p, prmH, 'person_type') : '',
       area: p ? getVal(p, prmH, 'area') : '',
@@ -952,12 +991,12 @@ function applyFilters() {
     const matchSt  = !st  || (st === 'active' ? tr.dataset.status === 'active' : tr.dataset.status !== 'active' && tr.dataset.status !== '');
     let matchDate = true;
     if (dateSys && (dateFrom || dateTo)) {
-      const raw = tr.dataset['date_' + dateSys] || '';
+      const attrMap = { prm: 'data-date_prm', fox: 'data-date_fox', snow: 'data-date_snow', ad: 'data-date_ad' };
+      const raw = tr.getAttribute(attrMap[dateSys]) || '';
       if (!raw) {
         matchDate = false;
       } else {
-        // Normalize: take first 10 chars (YYYY-MM-DD), handle various formats
-        let d = raw.substring(0, 10);
+        const d = raw.substring(0, 10);
         if (dateFrom && d < dateFrom) matchDate = false;
         if (dateTo   && d > dateTo)   matchDate = false;
       }
