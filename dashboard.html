@@ -102,6 +102,16 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .count-lbl{margin-left:auto;font-size:11px;color:var(--muted)}
 .btn-reset{background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:var(--fm);font-size:11px;cursor:pointer;transition:all .12s}
 .btn-reset:hover{border-color:var(--accent);color:var(--accent)}
+.date-range-wrap{display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:4px 9px}
+.date-range-wrap:focus-within{border-color:var(--accent)}
+.date-range-lbl{font-size:10px;color:var(--muted);white-space:nowrap}
+.date-range-sep{font-size:10px;color:var(--muted)}
+.fdate{background:none;border:none;outline:none;color:var(--text);font-family:var(--fm);font-size:11px;cursor:pointer;width:98px}
+.fdate::-webkit-calendar-picker-indicator{filter:invert(0.5) sepia(1) hue-rotate(120deg) saturate(0.6);cursor:pointer;opacity:0.7}
+.fdate::-webkit-calendar-picker-indicator:hover{opacity:1}
+.date-field-sel{display:flex;align-items:center;gap:4px;background:var(--bg4);border:1px solid var(--border);border-radius:3px;padding:2px 6px}
+.date-sys-sel{background:none;border:none;outline:none;color:var(--muted);font-family:var(--fm);font-size:10px;cursor:pointer}
+.date-sys-sel:focus{color:var(--accent)}
 
 /* ── TABLE ── */
 .tbl-wrap{overflow-x:auto;max-height:calc(100vh - 200px);overflow-y:auto}
@@ -360,6 +370,22 @@ tr:hover td{background:rgba(255,255,255,.025);cursor:pointer}
         <option value="active">Attivo in PRM</option>
         <option value="inactive">Inattivo in PRM</option>
       </select>
+      <div class="date-range-wrap" title="Filtra per data start (dalla sorgente selezionata)">
+        <div class="date-field-sel">
+          <span class="date-range-lbl">📅</span>
+          <select class="date-sys-sel" id="f-date-sys" onchange="applyFilters()">
+            <option value="">Sistema</option>
+            <option value="prm">Start PRM</option>
+            <option value="fox">Start FOX</option>
+            <option value="snow">Start Snow</option>
+            <option value="ad">Creato AD</option>
+          </select>
+        </div>
+        <span class="date-range-sep">dal</span>
+        <input type="date" class="fdate" id="f-date-from" onchange="applyFilters()">
+        <span class="date-range-sep">al</span>
+        <input type="date" class="fdate" id="f-date-to" onchange="applyFilters()">
+      </div>
       <button class="btn-reset" onclick="resetFilters()">✕ Reset</button>
       <span class="count-lbl" id="match-count">– utenti</span>
     </div>
@@ -886,7 +912,11 @@ function renderMatchTable(rows) {
       data-snow="${r.in_snow?'1':'0'}"
       data-ad="${r.in_ad?'1':'0'}"
       data-status="${(r.status_prm||'').toLowerCase()}"
-      data-search="${(r.name+' '+r.email+' '+r.ad).toLowerCase()}">
+      data-search="${(r.name+' '+r.email+' '+r.ad).toLowerCase()}"
+      data-date_prm="${(r.start_prm||'').toString().substring(0,10)}"
+      data-date_fox="${(r.start_fox||'').toString().substring(0,10)}"
+      data-date_snow="${(r.start_snow||'').toString().substring(0,10)}"
+      data-date_ad="${(r.date_ad||'').toString().substring(0,10)}">
       <td style="font-weight:500">${r.name||'–'}</td>
       <td style="color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis">${r.email}</td>
       <td><code style="font-size:10px;color:var(--accent)">${r.ad||'–'}</code></td>
@@ -909,6 +939,9 @@ function applyFilters() {
   const cov = document.getElementById('f-cov')?.value || '';
   const sys = document.getElementById('f-sys')?.value || '';
   const st  = document.getElementById('f-status')?.value || '';
+  const dateSys  = document.getElementById('f-date-sys')?.value || '';
+  const dateFrom = document.getElementById('f-date-from')?.value || '';
+  const dateTo   = document.getElementById('f-date-to')?.value || '';
 
   const rows = document.querySelectorAll('#match-body tr');
   let visible = 0;
@@ -917,7 +950,19 @@ function applyFilters() {
     const matchCov = !cov || tr.dataset.cov === cov;
     const matchSys = !sys || tr.dataset[sys] === '1';
     const matchSt  = !st  || (st === 'active' ? tr.dataset.status === 'active' : tr.dataset.status !== 'active' && tr.dataset.status !== '');
-    const show = matchQ && matchCov && matchSys && matchSt;
+    let matchDate = true;
+    if (dateSys && (dateFrom || dateTo)) {
+      const raw = tr.dataset['date_' + dateSys] || '';
+      if (!raw) {
+        matchDate = false;
+      } else {
+        // Normalize: take first 10 chars (YYYY-MM-DD), handle various formats
+        let d = raw.substring(0, 10);
+        if (dateFrom && d < dateFrom) matchDate = false;
+        if (dateTo   && d > dateTo)   matchDate = false;
+      }
+    }
+    const show = matchQ && matchCov && matchSys && matchSt && matchDate;
     tr.style.display = show ? '' : 'none';
     if (show) visible++;
   });
@@ -925,7 +970,10 @@ function applyFilters() {
 }
 
 function resetFilters() {
-  ['f-cov','f-sys','f-status'].forEach(id => document.getElementById(id).value = '');
+  ['f-cov','f-sys','f-status','f-date-sys','f-date-from','f-date-to'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
   document.getElementById('globalSearch').value = '';
   applyFilters();
 }
