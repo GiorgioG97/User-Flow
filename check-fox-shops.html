@@ -83,7 +83,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .upload-hint{font-size:11px;color:var(--muted);margin-top:10px;max-width:560px;text-align:center;line-height:1.7}
 
 /* METRICS */
-.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.metrics{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px}
 .mc{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
 .mc-val{font-family:var(--fd);font-size:26px;font-weight:800;line-height:1;margin-bottom:4px}
 .mc-lbl{font-size:10px;color:var(--muted);line-height:1.4}
@@ -121,6 +121,8 @@ tr.row-clk:hover td{background:rgba(255,255,255,.025);cursor:pointer}
 .sb-user-no{background:rgba(217,91,91,.12);color:#E88080}
 .sb-shop-ok{background:rgba(91,174,118,.18);color:#7ACD96}
 .sb-shop-no{background:rgba(217,91,91,.12);color:#E88080}
+.sb-cm-ok{background:rgba(123,79,191,.18);color:#B08ADF}
+.sb-cm-no{background:rgba(217,91,91,.12);color:#E88080}
 
 /* ALERT */
 .alert{display:flex;gap:10px;padding:11px 14px;border-radius:6px;margin-bottom:14px;font-size:11.5px;line-height:1.75}
@@ -184,7 +186,7 @@ tr.row-clk:hover td{background:rgba(255,255,255,.025);cursor:pointer}
     <span class="sb-count err" id="cnt-ko">–</span>
   </button>
   <button class="sb-btn" onclick="nav('partial')" id="nav-partial">
-    <span>◑</span> Shop access mancante
+    <span>◑</span> Shop access incompleto
     <span class="sb-count warn" id="cnt-partial">–</span>
   </button>
   <button class="sb-btn" onclick="nav('ok')" id="nav-ok">
@@ -205,6 +207,10 @@ tr.row-clk:hover td{background:rgba(255,255,255,.025);cursor:pointer}
     <div class="sb-file-row">
       <span class="sb-file-lbl"><span class="sb-file-dot" id="dot-shop"></span>FOX SHOP_ACCESS</span>
       <span class="sb-file-val" id="cnt-shop-rows">–</span>
+    </div>
+    <div class="sb-file-row">
+      <span class="sb-file-lbl"><span class="sb-file-dot" id="dot-cm"></span>FOX CM_S_EMPLOYEE</span>
+      <span class="sb-file-val" id="cnt-cm-rows">–</span>
     </div>
     <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:8px">
       <button onclick="nav('upload')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:var(--fm);font-size:10px;cursor:pointer;width:100%;transition:all .12s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↺ Ricarica file</button>
@@ -245,30 +251,39 @@ tr.row-clk:hover td{background:rgba(255,255,255,.025);cursor:pointer}
       </div>
 
       <div class="upload-section-lbl" style="color:#7AABDF">② Tabelle FOX (estratti già con DT_END = NULL)</div>
-      <div class="upload-grid-3" style="grid-template-columns:1fr 1fr;max-width:780px">
+      <div class="upload-grid-3" style="grid-template-columns:1fr 1fr 1fr;max-width:780px">
         <div class="uz" id="zone-user">
           <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('user',this)">
           <div class="uz-icon" style="background:rgba(27,93,170,.12);color:#7AABDF;border:1px solid rgba(27,93,170,.25)">F·U</div>
           <div class="uz-text">
             <div class="uz-name">US_B_USER</div>
-            <div class="uz-status" id="st-user">Anagrafica utenti FOX attivi</div>
+            <div class="uz-status" id="st-user">Anagrafica utenti FOX</div>
             <div class="uz-file" id="fn-user"></div>
           </div>
         </div>
         <div class="uz" id="zone-shop">
           <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('shop',this)">
-          <div class="uz-icon" style="background:rgba(27,93,170,.12);color:#7AABDF;border:1px solid rgba(27,93,170,.25)">F·S</div>
+          <div class="uz-icon" style="background:rgba(27,93,170,.12);color:#7AABDF;border:1px solid rgba(27,93,170,.25)">F·SA</div>
           <div class="uz-text">
-            <div class="uz-name">USER_SHOP_ACCESS (CM_S_EMPLOYEE)</div>
-            <div class="uz-status" id="st-shop">Associazioni utente-negozio attive · file grande</div>
+            <div class="uz-name">US_B_USER_SHOP_ACCESS</div>
+            <div class="uz-status" id="st-shop">Accessi user → shop · file grande</div>
             <div class="uz-file" id="fn-shop"></div>
+          </div>
+        </div>
+        <div class="uz" id="zone-cm">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('cm',this)">
+          <div class="uz-icon" style="background:rgba(27,93,170,.12);color:#7AABDF;border:1px solid rgba(27,93,170,.25)">F·CM</div>
+          <div class="uz-text">
+            <div class="uz-name">CM_S_EMPLOYEE</div>
+            <div class="uz-status" id="st-cm">Employee → shop in FOX</div>
+            <div class="uz-file" id="fn-cm"></div>
           </div>
         </div>
       </div>
 
       <button class="btn-analyze" id="btn-analyze" onclick="runAnalysis()" disabled>▶  Esegui check</button>
       <div class="upload-hint">
-        <strong>Logica:</strong> per ogni riga PRM (filtrabile per mese) verifica che esista (a) l'utente FOX in US_B_USER con stesso AD DOMAIN, (b) l'associazione USER_NAME + ACCESS_CODE = SHOP CODE in SHOP_ACCESS.<br>
+        <strong>Logica:</strong> per ogni riga PRM (filtrabile per mese) verifica che esistano (a) l'utente FOX in US_B_USER tramite AD DOMAIN, (b) la pair (USER_NAME, ACCESS_CODE=SHOP CODE) in US_B_USER_SHOP_ACCESS, (c) la pair (EMPLOYEE_*, SHOP_CODE) in CM_S_EMPLOYEE — sia via PERSON NUMBER↔EMPLOYEE_ID sia via catena AD→US.EC→CM.EC.<br>
         I file restano in locale — nessun upload remoto.
       </div>
     </div>
@@ -284,9 +299,9 @@ tr.row-clk:hover td{background:rgba(255,255,255,.025);cursor:pointer}
       </select>
       <select class="fsel" id="filterStatus" onchange="applyFilters()">
         <option value="ALL">Tutti gli stati</option>
-        <option value="OK">✓ Complete</option>
-        <option value="PARTIAL">◑ Solo user (no shop access)</option>
-        <option value="KO">⚠ User mancante</option>
+        <option value="OK">✓ Complete (3/3)</option>
+        <option value="PARTIAL">◑ Parziale (manca shop access o cm)</option>
+        <option value="KO">⚠ User mancante in FOX</option>
       </select>
       <select class="fsel" id="filterAssignStatus" onchange="applyFilters()">
         <option value="ALL">Tutti gli ASSIGNMENT STATUS</option>
@@ -309,7 +324,8 @@ tr.row-clk:hover td{background:rgba(255,255,255,.025);cursor:pointer}
             <th>Assign Start</th>
             <th>Assign Status</th>
             <th>FOX User</th>
-            <th>FOX Shop Access</th>
+            <th>SHOP_ACCESS</th>
+            <th>CM_EMPLOYEE</th>
           </tr>
         </thead>
         <tbody id="result-body"></tbody>
@@ -348,6 +364,7 @@ const state = {
   prm: null,        // {rows, headers, file}
   user: null,
   shop: null,
+  cm: null,
   results: [],      // tutte le righe PRM con info match
   filtered: [],
 };
@@ -433,7 +450,7 @@ function loadFile(kind, input) {
 }
 
 function checkAnalyzeReady() {
-  const ready = state.prm && state.user && state.shop;
+  const ready = state.prm && state.user && state.shop && state.cm;
   document.getElementById('btn-analyze').disabled = !ready;
 }
 
@@ -543,13 +560,14 @@ function doAnalysis() {
     alert('Nel file FOX US_B_USER non trovo la colonna USER_NAME');
     return;
   }
-  const foxUsers = new Map();  // userName norm -> obj
+  const foxUsers = new Map();  // userName norm -> obj (con employee_code)
   for (const r of state.user.rows) {
     const un = normUser(r[U_UN]);
     if (!un) continue;
     foxUsers.set(un, {
       user_name: r[U_UN],
       employee_code: r[U_EC] !== undefined ? r[U_EC] : null,
+      employee_code_norm: r[U_EC] !== undefined ? normCode(r[U_EC]) : '',
       descr: r[U_DSC] !== undefined ? r[U_DSC] : null,
       email: r[U_EMAIL] !== undefined ? r[U_EMAIL] : null,
       dt_start: r[U_DTSTART] !== undefined ? r[U_DTSTART] : null,
@@ -567,9 +585,8 @@ function doAnalysis() {
     alert('Nel file FOX SHOP_ACCESS non trovo USER_NAME o ACCESS_CODE');
     return;
   }
-  // mappa pair "user|shop" -> info, e mappa user -> set(shops) per analisi extra
-  const shopAccessPairs = new Map();
-  const userShops = new Map();
+  const shopAccessPairs = new Map();      // "user|shop" -> info
+  const userShops = new Map();            // user -> Set(shop)
   for (const r of state.shop.rows) {
     const un = normUser(r[S_UN]);
     const ac = normCode(r[S_AC]);
@@ -583,6 +600,52 @@ function doAnalysis() {
     userShops.get(un).add(ac);
   }
 
+  // ---- CM_S_EMPLOYEE ----
+  const ch = state.cm.headers;
+  const C_EC  = findHeader(ch, ['EMPLOYEE_CODE','EMPLOYEECODE','EMPLOYEE CODE']);
+  const C_EID = findHeader(ch, ['EMPLOYEE_ID','EMPLOYEEID','EMPLOYEE ID']);
+  const C_SC  = findHeader(ch, ['SHOP_CODE','SHOPCODE','SHOP CODE']);
+  const C_FN  = findHeader(ch, ['FIRSTNAME','FIRST_NAME','FIRST NAME']);
+  const C_LN  = findHeader(ch, ['LASTNAME','LAST_NAME','LAST NAME']);
+  const C_DSC = findHeader(ch, ['EMPLOYEE_DESCR','EMPLOYEEDESCR']);
+  const C_TYPE = findHeader(ch, ['EMPLOYEE_TYPE_CODE','EMPLOYEETYPECODE']);
+  const C_DTSTART = findHeader(ch, ['DT_START','DTSTART']);
+  if (!C_SC || (!C_EC && !C_EID)) {
+    hideLoading();
+    alert('Nel file FOX CM_S_EMPLOYEE non trovo SHOP_CODE o EMPLOYEE_CODE/EMPLOYEE_ID');
+    return;
+  }
+  // due indici diversi
+  const cmPairsByEC  = new Map();  // "ec|shop" -> info
+  const cmPairsByEID = new Map();  // "eid|shop" -> info
+  const cmShopsByEC  = new Map();  // ec  -> Set(shop)
+  const cmShopsByEID = new Map();  // eid -> Set(shop)
+  for (const r of state.cm.rows) {
+    const ec  = C_EC  ? normCode(r[C_EC])  : '';
+    const eid = C_EID ? normCode(r[C_EID]) : '';
+    const sc  = normCode(r[C_SC]);
+    if (!sc) continue;
+    const info = {
+      first: C_FN ? r[C_FN] : null,
+      last:  C_LN ? r[C_LN] : null,
+      descr: C_DSC ? r[C_DSC] : null,
+      type:  C_TYPE ? r[C_TYPE] : null,
+      dt_start: C_DTSTART ? r[C_DTSTART] : null,
+      employee_code: ec || null,
+      employee_id: eid || null,
+    };
+    if (ec) {
+      cmPairsByEC.set(ec + '|' + sc, info);
+      if (!cmShopsByEC.has(ec)) cmShopsByEC.set(ec, new Set());
+      cmShopsByEC.get(ec).add(sc);
+    }
+    if (eid) {
+      cmPairsByEID.set(eid + '|' + sc, info);
+      if (!cmShopsByEID.has(eid)) cmShopsByEID.set(eid, new Set());
+      cmShopsByEID.get(eid).add(sc);
+    }
+  }
+
   // ---- ANALISI ----
   const results = [];
   const monthsSet = new Set();
@@ -592,6 +655,7 @@ function doAnalysis() {
     const adRaw = r[H_AD];
     const ad = normUser(adRaw);
     const shop = normCode(r[H_SHOP]);
+    const pn = normCode(r[H_PN]);
     const asd = parseDate(r[H_ASD]);
     const aed = parseDate(r[H_AED]);
     const ass = r[H_AS] || '';
@@ -600,15 +664,42 @@ function doAnalysis() {
     const lName = (r[H_LN] || '').toString().trim();
     const fullName = [fName, lName].filter(Boolean).join(' ') || '—';
 
-    // match
+    // ---- match US_B_USER ----
     const userObj = ad ? foxUsers.get(ad) : null;
     const hasUser = !!userObj;
+
+    // ---- match SHOP_ACCESS ----
     const hasShop = ad && shop ? shopAccessPairs.has(ad + '|' + shop) : false;
 
+    // ---- match CM_S_EMPLOYEE: doppia strategia ----
+    // strategy 1: PN ↔ EMPLOYEE_ID (diretto)
+    let hasCmDirect = false, cmInfoDirect = null;
+    if (pn && shop) {
+      cmInfoDirect = cmPairsByEID.get(pn + '|' + shop) || null;
+      hasCmDirect = !!cmInfoDirect;
+    }
+    // strategy 2: AD → US.EC → CM.EC (catena)
+    let hasCmChain = false, cmInfoChain = null;
+    let chainEC = null;
+    if (userObj && userObj.employee_code_norm) {
+      chainEC = userObj.employee_code_norm;
+      if (shop) {
+        cmInfoChain = cmPairsByEC.get(chainEC + '|' + shop) || null;
+        hasCmChain = !!cmInfoChain;
+      }
+    }
+    const hasCm = hasCmDirect || hasCmChain;
+
+    // shops alternativi visti in CM (per detail)
+    const cmAltShops = new Set();
+    if (pn && cmShopsByEID.has(pn))    cmShopsByEID.get(pn).forEach(s => cmAltShops.add(s));
+    if (chainEC && cmShopsByEC.has(chainEC)) cmShopsByEC.get(chainEC).forEach(s => cmAltShops.add(s));
+
+    // ---- stato globale ----
     let status;
-    if (hasUser && hasShop) status = 'OK';
-    else if (hasUser && !hasShop) status = 'PARTIAL';
-    else status = 'KO';
+    if (!hasUser) status = 'KO';
+    else if (hasShop && hasCm) status = 'OK';
+    else status = 'PARTIAL';
 
     const ym = ymKey(asd);
     if (ym) monthsSet.add(ym);
@@ -618,6 +709,7 @@ function doAnalysis() {
       ad: adRaw,
       adNorm: ad,
       personNumber: r[H_PN],
+      personNumberNorm: pn,
       firstName: fName, lastName: lName, fullName,
       email: r[H_EMAIL],
       job: H_JOB ? r[H_JOB] : null,
@@ -626,9 +718,13 @@ function doAnalysis() {
       asd, asdYM: ym,
       aed,
       assignStatus: ass,
-      hasUser, hasShop, status,
+      hasUser, hasShop, hasCm,
+      hasCmDirect, hasCmChain,
+      status,
       foxUser: userObj || null,
-      otherShopsInFox: userShops.get(ad) ? Array.from(userShops.get(ad)) : [],
+      cmInfo: cmInfoChain || cmInfoDirect || null,
+      otherShopsInAccess: userShops.get(ad) ? Array.from(userShops.get(ad)) : [],
+      cmAltShops: Array.from(cmAltShops),
     });
   }
 
@@ -640,7 +736,6 @@ function doAnalysis() {
   filterMonth.innerHTML = '<option value="ALL">Tutti i mesi</option>' +
     monthsSorted.map(m => `<option value="${m}">${m}</option>`).join('');
 
-  // default = mese corrente se presente, altrimenti il piu recente
   const now = new Date();
   const curYM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   if (monthsSet.has(curYM)) filterMonth.value = curYM;
@@ -653,7 +748,7 @@ function doAnalysis() {
 
   // sidebar files
   document.getElementById('sb-files').style.display = 'block';
-  ['prm','user','shop'].forEach(k => {
+  ['prm','user','shop','cm'].forEach(k => {
     document.getElementById('dot-'+k).classList.add('loaded');
     document.getElementById('cnt-'+k+'-rows').textContent = state[k].rows.length.toLocaleString('it');
   });
@@ -690,8 +785,6 @@ function applyFilters() {
 }
 
 function renderMetrics() {
-  // i counts si riferiscono alle righe filtrate per MESE+STATUS-ASSIGNMENT (ma non per stato),
-  // così l'utente vede subito i totali nel mese scelto
   const m = document.getElementById('filterMonth').value;
   const a = document.getElementById('filterAssignStatus').value;
   const inScope = state.results.filter(r => {
@@ -699,28 +792,31 @@ function renderMetrics() {
     if (a !== 'ALL' && r.assignStatus !== a) return false;
     return true;
   });
+  const total = inScope.length;
   const ok = inScope.filter(r => r.status === 'OK').length;
   const partial = inScope.filter(r => r.status === 'PARTIAL').length;
   const ko = inScope.filter(r => r.status === 'KO').length;
-  const total = inScope.length;
+  // dettaglio dei parziali: quante righe hanno utente FOX ma manca shop_access / cm
+  const missShop = inScope.filter(r => r.hasUser && !r.hasShop).length;
+  const missCm = inScope.filter(r => r.hasUser && !r.hasCm).length;
 
   const monthLbl = m === 'ALL' ? 'tutti i mesi' : m;
   document.getElementById('metrics').innerHTML = `
     <div class="mc"><div class="mc-val">${total}</div><div class="mc-lbl">Righe PRM<br><span style="opacity:.7">in ${monthLbl}</span></div></div>
-    <div class="mc"><div class="mc-val" style="color:#7ACD96">${ok}</div><div class="mc-lbl">✓ Complete<br><span style="opacity:.7">user + shop access</span></div></div>
-    <div class="mc"><div class="mc-val" style="color:#F0BE6A">${partial}</div><div class="mc-lbl">◑ Solo user<br><span style="opacity:.7">manca lo shop access</span></div></div>
+    <div class="mc"><div class="mc-val" style="color:#7ACD96">${ok}</div><div class="mc-lbl">✓ Complete<br><span style="opacity:.7">user + shop_access + cm</span></div></div>
+    <div class="mc"><div class="mc-val" style="color:#F0BE6A">${partial}</div><div class="mc-lbl">◑ Parziali<br><span style="opacity:.7">user OK ma manca qualcosa</span></div></div>
+    <div class="mc"><div class="mc-val" style="color:#E8A23A">${missShop}<span style="font-size:14px;opacity:.7"> / ${missCm}</span></div><div class="mc-lbl">manca shop_access<br><span style="opacity:.7">/ manca cm_employee</span></div></div>
     <div class="mc"><div class="mc-val" style="color:#E88080">${ko}</div><div class="mc-lbl">⚠ User mancante<br><span style="opacity:.7">non c'è in US_B_USER</span></div></div>
   `;
 
-  // alert riepilogativo
   const alertBox = document.getElementById('alert-box');
   if (total === 0) {
     alertBox.innerHTML = `<div class="alert alert-info">Nessuna riga PRM nel periodo selezionato. Cambia mese o filtro.</div>`;
   } else if (ko + partial === 0) {
-    alertBox.innerHTML = `<div class="alert alert-info">✓ Tutte le ${total} righe PRM hanno utente e shop access in FOX. Nessuna anomalia.</div>`;
+    alertBox.innerHTML = `<div class="alert alert-info">✓ Tutte le ${total} righe PRM hanno utente, shop access e cm_employee in FOX. Nessuna anomalia.</div>`;
   } else {
     const pct = ((ok / total) * 100).toFixed(1);
-    alertBox.innerHTML = `<div class="alert alert-warn">${ok}/${total} righe completamente propagate (${pct}%). Restano ${partial} senza shop access e ${ko} senza utente FOX.</div>`;
+    alertBox.innerHTML = `<div class="alert alert-warn">${ok}/${total} righe completamente propagate (${pct}%). Restano ${partial} parziali e ${ko} senza utente FOX.</div>`;
   }
 }
 
@@ -745,7 +841,7 @@ function renderTable() {
     `${rows.length.toLocaleString('it')} righe visualizzate · ${state.results.length.toLocaleString('it')} totali`;
 
   if (rows.length === 0) {
-    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:40px">Nessuna riga corrisponde ai filtri.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:40px">Nessuna riga corrisponde ai filtri.</td></tr>`;
     return;
   }
 
@@ -762,6 +858,13 @@ function renderTable() {
     const shopBadge = r.hasShop
       ? `<span class="sys-badge sb-shop-ok">access OK</span>`
       : `<span class="sys-badge sb-shop-no">no access</span>`;
+    let cmBadge;
+    if (r.hasCm) {
+      const tag = r.hasCmDirect && r.hasCmChain ? 'EID+EC' : r.hasCmDirect ? 'via EID' : 'via EC';
+      cmBadge = `<span class="sys-badge sb-cm-ok" title="match ${tag}">cm OK</span>`;
+    } else {
+      cmBadge = `<span class="sys-badge sb-cm-no">cm no</span>`;
+    }
     const shopText = r.shopRaw ?
       (r.shopDescr ? `${r.shopRaw} · <span style="color:var(--muted)">${escapeHtml(r.shopDescr)}</span>` : r.shopRaw)
       : '—';
@@ -775,12 +878,13 @@ function renderTable() {
       <td><span style="font-size:10px;color:var(--muted)">${escapeHtml(r.assignStatus || '—')}</span></td>
       <td>${userBadge}</td>
       <td>${shopBadge}</td>
+      <td>${cmBadge}</td>
     </tr>`;
   }).join('');
 
   let footer = '';
   if (rows.length > MAX) {
-    footer = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px;font-size:11px;background:var(--bg3)">
+    footer = `<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:14px;font-size:11px;background:var(--bg3)">
       Mostrate prime ${MAX} righe di ${rows.length.toLocaleString('it')}. Esporta in CSV per vedere tutto, o restringi i filtri.
     </td></tr>`;
   }
@@ -833,6 +937,7 @@ function openDetail(idx) {
     </div>`;
   }
 
+  // SHOP_ACCESS
   if (r.hasShop) {
     foxHtml += `<div class="pcell">
       <div class="pc-row"><span class="pc-sys">SHOP_ACCESS</span><span class="sys-badge sb-shop-ok">presente</span></div>
@@ -840,18 +945,41 @@ function openDetail(idx) {
       <div style="font-size:11px;color:var(--muted);margin-top:6px">L'utente ha accesso a questo negozio in FOX.</div>
     </div>`;
   } else if (r.hasUser) {
-    const others = r.otherShopsInFox.length;
+    const others = r.otherShopsInAccess.length;
     foxHtml += `<div class="pcell">
       <div class="pc-row"><span class="pc-sys">SHOP_ACCESS</span><span class="sys-badge sb-shop-no">manca</span></div>
       <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.7">
         L'utente esiste in FOX ma <strong style="color:var(--text)">non ha accesso al negozio ${escapeHtml(r.shop)}</strong>.<br>
-        ${others > 0 ? `Ha però accesso ad altri ${others} negozi: <span style="color:var(--text);font-family:var(--fm);font-size:10px">${r.otherShopsInFox.slice(0,12).map(escapeHtml).join(', ')}${others > 12 ? '…' : ''}</span>` : `Non ha accesso a nessun negozio in FOX.`}
+        ${others > 0 ? `Altri ${others} accessi: <span style="color:var(--text);font-family:var(--fm);font-size:10px">${r.otherShopsInAccess.slice(0,12).map(escapeHtml).join(', ')}${others > 12 ? '…' : ''}</span>` : `Non ha accesso a nessun negozio in SHOP_ACCESS.`}
       </div>
     </div>`;
   } else {
     foxHtml += `<div class="pcell">
       <div class="pc-row"><span class="pc-sys">SHOP_ACCESS</span><span class="sys-badge sb-shop-no">manca</span></div>
       <div style="font-size:11px;color:var(--muted);margin-top:6px">Coerente con l'assenza in US_B_USER.</div>
+    </div>`;
+  }
+
+  // CM_S_EMPLOYEE
+  if (r.hasCm) {
+    const tags = [];
+    if (r.hasCmDirect) tags.push('PERSON_NUMBER ↔ EMPLOYEE_ID');
+    if (r.hasCmChain)  tags.push('AD → US.EC → CM.EC');
+    foxHtml += `<div class="pcell">
+      <div class="pc-row"><span class="pc-sys">CM_S_EMPLOYEE</span><span class="sys-badge sb-cm-ok">presente</span></div>
+      <div class="pc-row"><span class="pc-sys">match via</span><span class="pc-val" style="font-size:10px;color:var(--muted)">${tags.join(' · ')}</span></div>
+      ${r.cmInfo && r.cmInfo.type ? `<div class="pc-row"><span class="pc-sys">type</span><span class="pc-val" style="font-size:11px">${escapeHtml(r.cmInfo.type)}</span></div>` : ''}
+      ${r.cmInfo && r.cmInfo.dt_start ? `<div class="pc-row"><span class="pc-sys">dt_start</span><span class="pc-val" style="font-size:11px">${escapeHtml(r.cmInfo.dt_start)}</span></div>` : ''}
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">L'employee è collegato a questo negozio in CM_S_EMPLOYEE.</div>
+    </div>`;
+  } else {
+    const others = r.cmAltShops.length;
+    foxHtml += `<div class="pcell">
+      <div class="pc-row"><span class="pc-sys">CM_S_EMPLOYEE</span><span class="sys-badge sb-cm-no">manca</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.7">
+        Nessuna riga in CM_S_EMPLOYEE per (employee, shop ${escapeHtml(r.shop)}) — tentati entrambi i match (PN↔EMPLOYEE_ID e via AD→US.EC→CM.EC).
+        ${others > 0 ? `<br>L'employee è però presente su altri ${others} shop in CM: <span style="color:var(--text);font-family:var(--fm);font-size:10px">${r.cmAltShops.slice(0,12).map(escapeHtml).join(', ')}${others > 12 ? '…' : ''}</span>` : ''}
+      </div>
     </div>`;
   }
 
@@ -884,6 +1012,9 @@ function exportCSV() {
     ['Assignment Status', r => r.assignStatus],
     ['User esiste in FOX', r => r.hasUser ? 'SI' : 'NO'],
     ['Shop access in FOX', r => r.hasShop ? 'SI' : 'NO'],
+    ['CM Employee in FOX', r => r.hasCm ? 'SI' : 'NO'],
+    ['CM match via PN↔EMPLOYEE_ID', r => r.hasCmDirect ? 'SI' : 'NO'],
+    ['CM match via AD→US.EC→CM.EC', r => r.hasCmChain ? 'SI' : 'NO'],
     ['FOX user_name', r => r.foxUser ? r.foxUser.user_name : ''],
     ['FOX employee_code', r => r.foxUser ? r.foxUser.employee_code : ''],
     ['FOX user dt_start', r => r.foxUser ? r.foxUser.dt_start : ''],
@@ -895,7 +1026,7 @@ function exportCSV() {
   };
   const header = cols.map(c => c[0]).join(';');
   const lines = state.filtered.map(r => cols.map(c => esc(c[1](r))).join(';'));
-  const csv = '\ufeff' + header + '\n' + lines.join('\n');  // BOM per Excel
+  const csv = '\ufeff' + header + '\n' + lines.join('\n');
 
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
