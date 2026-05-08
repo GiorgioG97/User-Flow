@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Check FOX Shop Access · Amplifon IT</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:#0D0F0E; --bg2:#141716; --bg3:#1C1F1E; --bg4:#232624;
+  --border:rgba(255,255,255,0.07); --border-hi:rgba(255,255,255,0.15);
+  --text:#E8EAE9; --muted:#6B7370; --accent:#81B5A1;
+  --oracle:#C74634; --fox:#1B5DAA;
+  --ok:#5BAE76; --warn:#E8A23A; --danger:#D95B5B;
+  --fm:'JetBrains Mono',monospace; --fd:'Syne',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--fm);font-size:13px;line-height:1.55;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(129,181,161,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(129,181,161,.022) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+
+/* LAYOUT */
+.shell{display:flex;min-height:100vh;position:relative;z-index:1}
+.sidebar{width:224px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50;overflow-y:auto}
+.main{margin-left:224px;flex:1;min-width:0}
+
+/* SIDEBAR */
+.sb-logo{padding:20px 18px 14px;border-bottom:1px solid var(--border)}
+.sb-title{font-family:var(--fd);font-weight:700;font-size:15px;letter-spacing:-.02em}
+.sb-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.sb-tag{display:inline-block;margin-top:6px;padding:2px 8px;background:rgba(27,93,170,.12);border:1px solid rgba(27,93,170,.3);border-radius:10px;font-size:9px;color:#7AABDF;letter-spacing:.05em}
+.sb-section{padding:14px 14px 5px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.sb-btn{display:flex;align-items:center;gap:9px;padding:7px 14px;color:var(--muted);font-size:12px;border-radius:4px;margin:1px 8px;transition:all .12s;cursor:pointer;border:none;background:none;width:calc(100% - 16px);text-align:left;font-family:var(--fm)}
+.sb-btn:hover{background:var(--bg3);color:var(--text)}
+.sb-btn.active{background:var(--bg3);color:var(--accent)}
+.sb-count{margin-left:auto;font-size:10px;padding:1px 7px;border-radius:10px;background:var(--bg4);color:var(--muted)}
+.sb-count.ok{background:rgba(91,174,118,.15);color:#7ACD96}
+.sb-count.warn{background:rgba(232,162,58,.15);color:#F0BE6A}
+.sb-count.err{background:rgba(217,91,91,.15);color:#E88080}
+
+.sb-files{padding:14px;border-top:1px solid var(--border)}
+.sb-file-row{display:flex;align-items:center;justify-content:space-between;padding:4px 0;font-size:11px}
+.sb-file-lbl{display:flex;align-items:center;gap:7px;color:var(--muted)}
+.sb-file-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0;background:var(--bg4)}
+.sb-file-dot.loaded{background:var(--ok)}
+.sb-file-val{font-size:10px;color:var(--muted)}
+
+/* TOPBAR */
+.topbar{height:50px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(13,15,14,.92);backdrop-filter:blur(12px);position:sticky;top:0;z-index:40}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.topbar-title{font-family:var(--fd);font-size:15px;font-weight:700;letter-spacing:-.02em}
+.back-link{font-size:11px;color:var(--muted);text-decoration:none;display:flex;align-items:center;gap:5px;transition:color .12s;padding:4px 8px;border:1px solid var(--border);border-radius:4px}
+.back-link:hover{color:var(--text);border-color:var(--border-hi)}
+.search-wrap{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:5px 11px}
+.search-wrap input{background:none;border:none;outline:none;color:var(--text);font-family:var(--fm);font-size:12px;width:240px}
+.search-wrap input::placeholder{color:var(--muted)}
+
+/* VIEWS */
+.view{display:none;padding:22px}
+.view.active{display:block}
+
+/* UPLOAD */
+.upload-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 50px);padding:40px 24px}
+.upload-title{font-family:var(--fd);font-size:24px;font-weight:800;letter-spacing:-.03em;margin-bottom:6px;text-align:center}
+.upload-sub{color:var(--muted);font-size:13px;margin-bottom:36px;max-width:560px;line-height:1.8;text-align:center}
+.upload-section-lbl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;align-self:flex-start;width:100%;max-width:780px}
+.upload-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:780px;margin-bottom:24px}
+
+.uz{background:var(--bg2);border:1.5px dashed var(--border-hi);border-radius:8px;padding:20px 16px;cursor:pointer;transition:all .15s;position:relative;display:flex;align-items:center;gap:14px}
+.uz:hover{border-color:var(--accent);background:var(--bg3)}
+.uz.loaded{border-style:solid;border-color:var(--ok)}
+.uz input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.uz-icon{width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-weight:700;font-size:15px;flex-shrink:0}
+.uz-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.uz-name{font-family:var(--fd);font-weight:600;font-size:12px}
+.uz-status{font-size:10px;color:var(--muted)}
+.uz-file{font-size:10px;color:var(--ok);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px}
+
+.btn-analyze{padding:11px 30px;background:var(--accent);border:none;border-radius:5px;color:var(--bg);font-family:var(--fm);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s}
+.btn-analyze:hover{background:#9ECFBB;transform:translateY(-1px)}
+.btn-analyze:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.upload-hint{font-size:11px;color:var(--muted);margin-top:10px;max-width:560px;text-align:center;line-height:1.7}
+
+/* METRICS */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
+.mc-val{font-family:var(--fd);font-size:26px;font-weight:800;line-height:1;margin-bottom:4px}
+.mc-lbl{font-size:10px;color:var(--muted);line-height:1.4}
+
+/* FILTER BAR */
+.filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.fsel{background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:5px 9px;color:var(--text);font-family:var(--fm);font-size:11px;outline:none;cursor:pointer}
+.fsel:focus{border-color:var(--accent)}
+.count-lbl{margin-left:auto;font-size:11px;color:var(--muted)}
+.btn-sm{background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:var(--fm);font-size:11px;cursor:pointer;transition:all .12s}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg2)}
+table{width:100%;border-collapse:collapse;font-size:11.5px}
+th{font-size:10px;font-weight:400;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg2);z-index:2}
+td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr.row-clk:hover td{background:rgba(255,255,255,.025);cursor:pointer}
+
+/* SEMAFORO */
+.sem{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:500}
+.sem-ok{background:rgba(91,174,118,.14);color:#7ACD96;border:1px solid rgba(91,174,118,.25)}
+.sem-warn{background:rgba(232,162,58,.14);color:#F0BE6A;border:1px solid rgba(232,162,58,.25)}
+.sem-err{background:rgba(217,91,91,.14);color:#E88080;border:1px solid rgba(217,91,91,.25)}
+.sem-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sem-ok .sem-dot{background:#7ACD96}
+.sem-warn .sem-dot{background:#F0BE6A}
+.sem-err .sem-dot{background:#E88080}
+
+/* SYSTEM CELLS */
+.sys-cell{display:flex;align-items:center;gap:6px}
+.sys-badge{display:inline-flex;align-items:center;justify-content:center;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:600;letter-spacing:.04em}
+.sb-user-ok{background:rgba(27,93,170,.2);color:#7AABDF}
+.sb-user-no{background:rgba(217,91,91,.12);color:#E88080}
+.sb-shop-ok{background:rgba(91,174,118,.18);color:#7ACD96}
+.sb-shop-no{background:rgba(217,91,91,.12);color:#E88080}
+
+/* ALERT */
+.alert{display:flex;gap:10px;padding:11px 14px;border-radius:6px;margin-bottom:14px;font-size:11.5px;line-height:1.75}
+.alert-warn{background:rgba(232,162,58,.07);border:1px solid rgba(232,162,58,.2);color:#F0BE6A}
+.alert-info{background:rgba(129,181,161,.07);border:1px solid rgba(129,181,161,.2);color:var(--accent)}
+
+/* OVERLAY */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:200;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.panel{background:var(--bg2);border:1px solid var(--border-hi);border-radius:12px;width:600px;max-width:95vw;max-height:88vh;overflow-y:auto;padding:24px;position:relative}
+.panel-close{position:absolute;top:16px;right:18px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;transition:color .12s}
+.panel-close:hover{color:var(--text)}
+.panel-name{font-family:var(--fd);font-size:19px;font-weight:700;margin-bottom:3px}
+.panel-sub{font-size:11px;color:var(--muted);margin-bottom:16px}
+.panel-section{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 8px;padding-top:14px;border-top:1px solid var(--border)}
+.panel-section:first-of-type{padding-top:0;border-top:none;margin-top:0}
+.pcell{background:var(--bg3);border-radius:6px;padding:10px 12px;margin-bottom:8px}
+.pc-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.pc-row:last-child{margin-bottom:0}
+.pc-sys{font-size:9px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;min-width:80px}
+.pc-val{font-size:12px}
+.kv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kv{display:flex;flex-direction:column;gap:2px}
+.kv-k{font-size:9px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.kv-v{font-size:12px;word-break:break-all}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-hi);border-radius:2px}
+
+/* LOADING */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(13,15,14,.92);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:18px}
+.loading-overlay.open{display:flex}
+.spinner{width:32px;height:32px;border:2px solid var(--border-hi);border-top-color:var(--accent);border-radius:50%;animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:12px;color:var(--muted);font-family:var(--fm)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sb-logo">
+    <div class="sb-title">Check FOX Shops</div>
+    <div class="sb-sub">PRM ↔ FOX shop access</div>
+    <span class="sb-tag">Beta · Test tool</span>
+  </div>
+
+  <div class="sb-section">Viste</div>
+  <button class="sb-btn active" onclick="nav('upload')" id="nav-upload">
+    <span>↑</span> Carica file
+  </button>
+  <button class="sb-btn" onclick="nav('results')" id="nav-results">
+    <span>⊟</span> Tutte le righe
+    <span class="sb-count" id="cnt-total">–</span>
+  </button>
+  <button class="sb-btn" onclick="nav('ko')" id="nav-ko">
+    <span>⚠</span> User mancante FOX
+    <span class="sb-count err" id="cnt-ko">–</span>
+  </button>
+  <button class="sb-btn" onclick="nav('partial')" id="nav-partial">
+    <span>◑</span> Shop access mancante
+    <span class="sb-count warn" id="cnt-partial">–</span>
+  </button>
+  <button class="sb-btn" onclick="nav('ok')" id="nav-ok">
+    <span>✓</span> Complete
+    <span class="sb-count ok" id="cnt-ok">–</span>
+  </button>
+
+  <div class="sb-files" id="sb-files" style="display:none">
+    <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">File caricati</div>
+    <div class="sb-file-row">
+      <span class="sb-file-lbl"><span class="sb-file-dot" id="dot-prm"></span>PRM Master</span>
+      <span class="sb-file-val" id="cnt-prm-rows">–</span>
+    </div>
+    <div class="sb-file-row">
+      <span class="sb-file-lbl"><span class="sb-file-dot" id="dot-user"></span>FOX US_B_USER</span>
+      <span class="sb-file-val" id="cnt-user-rows">–</span>
+    </div>
+    <div class="sb-file-row">
+      <span class="sb-file-lbl"><span class="sb-file-dot" id="dot-shop"></span>FOX SHOP_ACCESS</span>
+      <span class="sb-file-val" id="cnt-shop-rows">–</span>
+    </div>
+    <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:8px">
+      <button onclick="nav('upload')" style="background:none;border:1px solid var(--border);border-radius:4px;padding:5px 10px;color:var(--muted);font-family:var(--fm);font-size:10px;cursor:pointer;width:100%;transition:all .12s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↺ Ricarica file</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <a href="index.html" class="back-link">← Home</a>
+      <div class="topbar-title" id="page-title">Carica i file</div>
+    </div>
+    <div class="search-wrap" id="search-wrap" style="display:none">
+      <span style="color:var(--muted);font-size:13px">⌕</span>
+      <input type="text" id="globalSearch" placeholder="Cerca persona, AD domain, shop…" oninput="applyFilters()">
+    </div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="view active" id="view-upload">
+    <div class="upload-screen">
+      <div class="upload-title">Check FOX Shop Access</div>
+      <div class="upload-sub">Verifica se le associazioni persona ↔ negozio del PRM (Oracle) sono effettivamente presenti nelle due tabelle FOX. Filtrabile per mese di <strong>ASSIGNMENT START DATE</strong>.</div>
+
+      <div class="upload-section-lbl" style="color:#E8856E">① PRM Person Masterdata · Oracle</div>
+      <div class="upload-grid-3" style="grid-template-columns:1fr;max-width:780px">
+        <div class="uz" id="zone-prm">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('prm',this)">
+          <div class="uz-icon" style="background:rgba(199,70,52,.12);color:#E8856E;border:1px solid rgba(199,70,52,.25)">O</div>
+          <div class="uz-text">
+            <div class="uz-name">PRM Person Masterdata Report</div>
+            <div class="uz-status" id="st-prm">Una riga = associazione persona-negozio. Filtreremo per ASSIGNMENT START DATE.</div>
+            <div class="uz-file" id="fn-prm"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="upload-section-lbl" style="color:#7AABDF">② Tabelle FOX (estratti già con DT_END = NULL)</div>
+      <div class="upload-grid-3" style="grid-template-columns:1fr 1fr;max-width:780px">
+        <div class="uz" id="zone-user">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('user',this)">
+          <div class="uz-icon" style="background:rgba(27,93,170,.12);color:#7AABDF;border:1px solid rgba(27,93,170,.25)">F·U</div>
+          <div class="uz-text">
+            <div class="uz-name">US_B_USER</div>
+            <div class="uz-status" id="st-user">Anagrafica utenti FOX attivi</div>
+            <div class="uz-file" id="fn-user"></div>
+          </div>
+        </div>
+        <div class="uz" id="zone-shop">
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="loadFile('shop',this)">
+          <div class="uz-icon" style="background:rgba(27,93,170,.12);color:#7AABDF;border:1px solid rgba(27,93,170,.25)">F·S</div>
+          <div class="uz-text">
+            <div class="uz-name">USER_SHOP_ACCESS (CM_S_EMPLOYEE)</div>
+            <div class="uz-status" id="st-shop">Associazioni utente-negozio attive · file grande</div>
+            <div class="uz-file" id="fn-shop"></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-analyze" id="btn-analyze" onclick="runAnalysis()" disabled>▶  Esegui check</button>
+      <div class="upload-hint">
+        <strong>Logica:</strong> per ogni riga PRM (filtrabile per mese) verifica che esista (a) l'utente FOX in US_B_USER con stesso AD DOMAIN, (b) l'associazione USER_NAME + ACCESS_CODE = SHOP CODE in SHOP_ACCESS.<br>
+        I file restano in locale — nessun upload remoto.
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS / KO / PARTIAL / OK -->
+  <div class="view" id="view-data">
+    <div class="metrics" id="metrics"></div>
+
+    <div class="filter-bar">
+      <select class="fsel" id="filterMonth" onchange="applyFilters()">
+        <option value="ALL">Tutti i mesi</option>
+      </select>
+      <select class="fsel" id="filterStatus" onchange="applyFilters()">
+        <option value="ALL">Tutti gli stati</option>
+        <option value="OK">✓ Complete</option>
+        <option value="PARTIAL">◑ Solo user (no shop access)</option>
+        <option value="KO">⚠ User mancante</option>
+      </select>
+      <select class="fsel" id="filterAssignStatus" onchange="applyFilters()">
+        <option value="ALL">Tutti gli ASSIGNMENT STATUS</option>
+      </select>
+      <button class="btn-sm" onclick="exportCSV()">↓ Export CSV</button>
+      <span class="count-lbl" id="count-lbl">–</span>
+    </div>
+
+    <div id="alert-box"></div>
+
+    <div class="tbl-wrap">
+      <table id="result-table">
+        <thead>
+          <tr>
+            <th>Stato</th>
+            <th>Persona</th>
+            <th>AD Domain</th>
+            <th>Person N°</th>
+            <th>Shop</th>
+            <th>Assign Start</th>
+            <th>Assign Status</th>
+            <th>FOX User</th>
+            <th>FOX Shop Access</th>
+          </tr>
+        </thead>
+        <tbody id="result-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- DETAIL OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="panel">
+    <button class="panel-close" onclick="closeOverlay()">×</button>
+    <div class="panel-name" id="ov-name">—</div>
+    <div class="panel-sub" id="ov-sub">—</div>
+
+    <div class="panel-section">Riga PRM</div>
+    <div class="kv-grid" id="ov-prm"></div>
+
+    <div class="panel-section">Riscontro FOX</div>
+    <div id="ov-fox"></div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loading-text">Caricamento…</div>
+</div>
+
+<script>
+/* ============================================================
+   STATE
+============================================================ */
+const state = {
+  prm: null,        // {rows, headers, file}
+  user: null,
+  shop: null,
+  results: [],      // tutte le righe PRM con info match
+  filtered: [],
+};
+
+/* ============================================================
+   NAV
+============================================================ */
+function nav(view) {
+  document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+
+  const titles = {
+    upload: 'Carica i file',
+    results: 'Tutte le righe',
+    ko: 'User mancante in FOX',
+    partial: 'Shop access mancante',
+    ok: 'Associazioni complete',
+  };
+  document.getElementById('page-title').textContent = titles[view] || '';
+
+  if (view === 'upload') {
+    document.getElementById('nav-upload').classList.add('active');
+    document.getElementById('view-upload').classList.add('active');
+    document.getElementById('search-wrap').style.display = 'none';
+    return;
+  }
+
+  document.getElementById(`nav-${view}`).classList.add('active');
+  document.getElementById('view-data').classList.add('active');
+  document.getElementById('search-wrap').style.display = 'flex';
+
+  // imposta filtro stato in base alla view
+  const fs = document.getElementById('filterStatus');
+  if (view === 'results') fs.value = 'ALL';
+  if (view === 'ko') fs.value = 'KO';
+  if (view === 'partial') fs.value = 'PARTIAL';
+  if (view === 'ok') fs.value = 'OK';
+
+  applyFilters();
+}
+
+/* ============================================================
+   FILE LOADING
+============================================================ */
+function showLoading(text) {
+  document.getElementById('loading-text').textContent = text || 'Caricamento…';
+  document.getElementById('loading').classList.add('open');
+}
+function hideLoading() {
+  document.getElementById('loading').classList.remove('open');
+}
+
+function loadFile(kind, input) {
+  const f = input.files[0];
+  if (!f) return;
+  showLoading(`Lettura ${f.name}…`);
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: null, raw: false, dateNF: 'yyyy-mm-dd' });
+      const headers = rows.length ? Object.keys(rows[0]) : [];
+
+      state[kind] = { rows, headers, file: f.name };
+
+      // UI
+      document.getElementById(`zone-${kind}`).classList.add('loaded');
+      document.getElementById(`fn-${kind}`).textContent = `${f.name} · ${rows.length.toLocaleString('it')} righe`;
+      document.getElementById(`st-${kind}`).textContent = `${rows.length.toLocaleString('it')} righe caricate`;
+
+      checkAnalyzeReady();
+      hideLoading();
+    } catch (err) {
+      hideLoading();
+      alert(`Errore lettura ${f.name}:\n${err.message}`);
+    }
+  };
+  reader.onerror = () => { hideLoading(); alert('Errore di lettura del file'); };
+  reader.readAsArrayBuffer(f);
+}
+
+function checkAnalyzeReady() {
+  const ready = state.prm && state.user && state.shop;
+  document.getElementById('btn-analyze').disabled = !ready;
+}
+
+/* ============================================================
+   NORMALIZERS / HEADER MATCHING
+============================================================ */
+function normUser(u) {
+  if (u === null || u === undefined) return '';
+  let s = String(u).trim().toLowerCase();
+  if (s.startsWith('#')) s = s.slice(1);
+  return s;
+}
+function normCode(c) {
+  if (c === null || c === undefined) return '';
+  let s = String(c).trim();
+  // se è "936" o "936.0" -> "936"
+  if (/^\d+\.0+$/.test(s)) s = s.replace(/\.0+$/, '');
+  return s;
+}
+function findHeader(headers, candidates) {
+  // case/space-insensitive lookup
+  const norm = h => String(h || '').trim().toLowerCase().replace(/[\s_]+/g, '');
+  const map = {};
+  headers.forEach(h => map[norm(h)] = h);
+  for (const c of candidates) {
+    const k = norm(c);
+    if (map[k]) return map[k];
+  }
+  return null;
+}
+
+/* ============================================================
+   DATE PARSING
+============================================================ */
+function parseDate(v) {
+  if (v === null || v === undefined || v === '') return null;
+  if (v instanceof Date && !isNaN(v)) return v;
+  const s = String(v).trim();
+  if (!s || s.toUpperCase() === 'NULL') return null;
+  // dd-mm-yyyy or dd/mm/yyyy
+  let m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);
+  if (m) {
+    const d = new Date(parseInt(m[3]), parseInt(m[2]) - 1, parseInt(m[1]));
+    if (!isNaN(d)) return d;
+  }
+  // yyyy-mm-dd
+  m = s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+  if (m) {
+    const d = new Date(parseInt(m[1]), parseInt(m[2]) - 1, parseInt(m[3]));
+    if (!isNaN(d)) return d;
+  }
+  // fallback Date()
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+function fmtDate(d) {
+  if (!d) return '—';
+  return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+}
+function ymKey(d) {
+  if (!d) return null;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+/* ============================================================
+   ANALYSIS
+============================================================ */
+function runAnalysis() {
+  showLoading('Analisi in corso…');
+  // setTimeout per dare alla UI il tempo di mostrare lo spinner
+  setTimeout(() => {
+    try { doAnalysis(); }
+    catch (err) { hideLoading(); alert('Errore: ' + err.message); console.error(err); }
+  }, 50);
+}
+
+function doAnalysis() {
+  // ---- PRM headers ----
+  const ph = state.prm.headers;
+  const H_AD     = findHeader(ph, ['AD DOMAIN','AD_DOMAIN','ADDOMAIN']);
+  const H_PN     = findHeader(ph, ['PERSON NUMBER','PERSON_NUMBER','PERSONNUMBER','PARTY_NUMBER']);
+  const H_FN     = findHeader(ph, ['FIRST NAME','FIRSTNAME','FIRST_NAME']);
+  const H_LN     = findHeader(ph, ['LAST NAME','LASTNAME','LAST_NAME']);
+  const H_EMAIL  = findHeader(ph, ['AMPLIFON EMAIL','EMAIL','AMPLIFON_EMAIL']);
+  const H_SHOP   = findHeader(ph, ['SHOP CODE','SHOP_CODE','SHOPCODE']);
+  const H_SHOPDS = findHeader(ph, ['SHOP DESCRIPTION','SHOP_DESCRIPTION']);
+  const H_ASD    = findHeader(ph, ['ASSIGNMENT START DATE','ASSIGNMENT_START_DATE']);
+  const H_AS     = findHeader(ph, ['ASSIGNMENT STATUS','ASSIGNMENT_STATUS']);
+  const H_AED    = findHeader(ph, ['ASSIGNMENT END DATE','ASSIGNMENT_END_DATE']);
+  const H_JOB    = findHeader(ph, ['JOB TITLE','JOB_TITLE','JOB']);
+
+  if (!H_AD || !H_SHOP) {
+    hideLoading();
+    alert('Nel file PRM non trovo le colonne AD DOMAIN o SHOP CODE.\nColonne presenti: ' + ph.join(', '));
+    return;
+  }
+
+  // ---- US_B_USER ----
+  const uh = state.user.headers;
+  const U_UN = findHeader(uh, ['USER_NAME','USERNAME','USER NAME']);
+  const U_EC = findHeader(uh, ['EMPLOYEE_CODE','EMPLOYEECODE','EMPLOYEE CODE']);
+  const U_DSC = findHeader(uh, ['USER_DESCR','USERDESCR','USER DESCR','USER_DESCRIPTION']);
+  const U_EMAIL = findHeader(uh, ['EMAIL']);
+  const U_DTSTART = findHeader(uh, ['DT_START','DTSTART']);
+  if (!U_UN) {
+    hideLoading();
+    alert('Nel file FOX US_B_USER non trovo la colonna USER_NAME');
+    return;
+  }
+  const foxUsers = new Map();  // userName norm -> obj
+  for (const r of state.user.rows) {
+    const un = normUser(r[U_UN]);
+    if (!un) continue;
+    foxUsers.set(un, {
+      user_name: r[U_UN],
+      employee_code: r[U_EC] !== undefined ? r[U_EC] : null,
+      descr: r[U_DSC] !== undefined ? r[U_DSC] : null,
+      email: r[U_EMAIL] !== undefined ? r[U_EMAIL] : null,
+      dt_start: r[U_DTSTART] !== undefined ? r[U_DTSTART] : null,
+    });
+  }
+
+  // ---- SHOP_ACCESS ----
+  const sh = state.shop.headers;
+  const S_UN = findHeader(sh, ['USER_NAME','USERNAME','USER NAME']);
+  const S_AC = findHeader(sh, ['ACCESS_CODE','ACCESSCODE','ACCESS CODE']);
+  const S_ATC = findHeader(sh, ['ACCESS_TYPE_CODE','ACCESSTYPECODE']);
+  const S_DTSTART = findHeader(sh, ['DT_START','DTSTART']);
+  if (!S_UN || !S_AC) {
+    hideLoading();
+    alert('Nel file FOX SHOP_ACCESS non trovo USER_NAME o ACCESS_CODE');
+    return;
+  }
+  // mappa pair "user|shop" -> info, e mappa user -> set(shops) per analisi extra
+  const shopAccessPairs = new Map();
+  const userShops = new Map();
+  for (const r of state.shop.rows) {
+    const un = normUser(r[S_UN]);
+    const ac = normCode(r[S_AC]);
+    if (!un || !ac) continue;
+    const k = un + '|' + ac;
+    shopAccessPairs.set(k, {
+      access_type: S_ATC ? r[S_ATC] : null,
+      dt_start: S_DTSTART ? r[S_DTSTART] : null,
+    });
+    if (!userShops.has(un)) userShops.set(un, new Set());
+    userShops.get(un).add(ac);
+  }
+
+  // ---- ANALISI ----
+  const results = [];
+  const monthsSet = new Set();
+  const assignStatuses = new Set();
+
+  for (const r of state.prm.rows) {
+    const adRaw = r[H_AD];
+    const ad = normUser(adRaw);
+    const shop = normCode(r[H_SHOP]);
+    const asd = parseDate(r[H_ASD]);
+    const aed = parseDate(r[H_AED]);
+    const ass = r[H_AS] || '';
+
+    const fName = (r[H_FN] || '').toString().trim();
+    const lName = (r[H_LN] || '').toString().trim();
+    const fullName = [fName, lName].filter(Boolean).join(' ') || '—';
+
+    // match
+    const userObj = ad ? foxUsers.get(ad) : null;
+    const hasUser = !!userObj;
+    const hasShop = ad && shop ? shopAccessPairs.has(ad + '|' + shop) : false;
+
+    let status;
+    if (hasUser && hasShop) status = 'OK';
+    else if (hasUser && !hasShop) status = 'PARTIAL';
+    else status = 'KO';
+
+    const ym = ymKey(asd);
+    if (ym) monthsSet.add(ym);
+    if (ass) assignStatuses.add(ass);
+
+    results.push({
+      ad: adRaw,
+      adNorm: ad,
+      personNumber: r[H_PN],
+      firstName: fName, lastName: lName, fullName,
+      email: r[H_EMAIL],
+      job: H_JOB ? r[H_JOB] : null,
+      shop, shopRaw: r[H_SHOP],
+      shopDescr: H_SHOPDS ? r[H_SHOPDS] : null,
+      asd, asdYM: ym,
+      aed,
+      assignStatus: ass,
+      hasUser, hasShop, status,
+      foxUser: userObj || null,
+      otherShopsInFox: userShops.get(ad) ? Array.from(userShops.get(ad)) : [],
+    });
+  }
+
+  state.results = results;
+
+  // popola dropdown mesi
+  const monthsSorted = Array.from(monthsSet).sort().reverse();
+  const filterMonth = document.getElementById('filterMonth');
+  filterMonth.innerHTML = '<option value="ALL">Tutti i mesi</option>' +
+    monthsSorted.map(m => `<option value="${m}">${m}</option>`).join('');
+
+  // default = mese corrente se presente, altrimenti il piu recente
+  const now = new Date();
+  const curYM = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  if (monthsSet.has(curYM)) filterMonth.value = curYM;
+  else if (monthsSorted.length) filterMonth.value = monthsSorted[0];
+
+  // popola dropdown assignment status
+  const fas = document.getElementById('filterAssignStatus');
+  fas.innerHTML = '<option value="ALL">Tutti gli ASSIGNMENT STATUS</option>' +
+    Array.from(assignStatuses).sort().map(s => `<option value="${s}">${s}</option>`).join('');
+
+  // sidebar files
+  document.getElementById('sb-files').style.display = 'block';
+  ['prm','user','shop'].forEach(k => {
+    document.getElementById('dot-'+k).classList.add('loaded');
+    document.getElementById('cnt-'+k+'-rows').textContent = state[k].rows.length.toLocaleString('it');
+  });
+
+  hideLoading();
+  nav('results');
+}
+
+/* ============================================================
+   FILTERS / RENDER
+============================================================ */
+function applyFilters() {
+  if (!state.results.length) return;
+  const m = document.getElementById('filterMonth').value;
+  const s = document.getElementById('filterStatus').value;
+  const a = document.getElementById('filterAssignStatus').value;
+  const q = (document.getElementById('globalSearch').value || '').trim().toLowerCase();
+
+  state.filtered = state.results.filter(r => {
+    if (m !== 'ALL' && r.asdYM !== m) return false;
+    if (s !== 'ALL' && r.status !== s) return false;
+    if (a !== 'ALL' && r.assignStatus !== a) return false;
+    if (q) {
+      const hay = [r.ad, r.fullName, r.email, r.shopRaw, r.shopDescr, r.personNumber]
+        .map(x => (x || '').toString().toLowerCase()).join(' ');
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  renderTable();
+  renderMetrics();
+  updateSidebarCounts();
+}
+
+function renderMetrics() {
+  // i counts si riferiscono alle righe filtrate per MESE+STATUS-ASSIGNMENT (ma non per stato),
+  // così l'utente vede subito i totali nel mese scelto
+  const m = document.getElementById('filterMonth').value;
+  const a = document.getElementById('filterAssignStatus').value;
+  const inScope = state.results.filter(r => {
+    if (m !== 'ALL' && r.asdYM !== m) return false;
+    if (a !== 'ALL' && r.assignStatus !== a) return false;
+    return true;
+  });
+  const ok = inScope.filter(r => r.status === 'OK').length;
+  const partial = inScope.filter(r => r.status === 'PARTIAL').length;
+  const ko = inScope.filter(r => r.status === 'KO').length;
+  const total = inScope.length;
+
+  const monthLbl = m === 'ALL' ? 'tutti i mesi' : m;
+  document.getElementById('metrics').innerHTML = `
+    <div class="mc"><div class="mc-val">${total}</div><div class="mc-lbl">Righe PRM<br><span style="opacity:.7">in ${monthLbl}</span></div></div>
+    <div class="mc"><div class="mc-val" style="color:#7ACD96">${ok}</div><div class="mc-lbl">✓ Complete<br><span style="opacity:.7">user + shop access</span></div></div>
+    <div class="mc"><div class="mc-val" style="color:#F0BE6A">${partial}</div><div class="mc-lbl">◑ Solo user<br><span style="opacity:.7">manca lo shop access</span></div></div>
+    <div class="mc"><div class="mc-val" style="color:#E88080">${ko}</div><div class="mc-lbl">⚠ User mancante<br><span style="opacity:.7">non c'è in US_B_USER</span></div></div>
+  `;
+
+  // alert riepilogativo
+  const alertBox = document.getElementById('alert-box');
+  if (total === 0) {
+    alertBox.innerHTML = `<div class="alert alert-info">Nessuna riga PRM nel periodo selezionato. Cambia mese o filtro.</div>`;
+  } else if (ko + partial === 0) {
+    alertBox.innerHTML = `<div class="alert alert-info">✓ Tutte le ${total} righe PRM hanno utente e shop access in FOX. Nessuna anomalia.</div>`;
+  } else {
+    const pct = ((ok / total) * 100).toFixed(1);
+    alertBox.innerHTML = `<div class="alert alert-warn">${ok}/${total} righe completamente propagate (${pct}%). Restano ${partial} senza shop access e ${ko} senza utente FOX.</div>`;
+  }
+}
+
+function updateSidebarCounts() {
+  const m = document.getElementById('filterMonth').value;
+  const a = document.getElementById('filterAssignStatus').value;
+  const inScope = state.results.filter(r => {
+    if (m !== 'ALL' && r.asdYM !== m) return false;
+    if (a !== 'ALL' && r.assignStatus !== a) return false;
+    return true;
+  });
+  document.getElementById('cnt-total').textContent = inScope.length;
+  document.getElementById('cnt-ok').textContent = inScope.filter(r => r.status === 'OK').length;
+  document.getElementById('cnt-partial').textContent = inScope.filter(r => r.status === 'PARTIAL').length;
+  document.getElementById('cnt-ko').textContent = inScope.filter(r => r.status === 'KO').length;
+}
+
+function renderTable() {
+  const body = document.getElementById('result-body');
+  const rows = state.filtered;
+  document.getElementById('count-lbl').textContent =
+    `${rows.length.toLocaleString('it')} righe visualizzate · ${state.results.length.toLocaleString('it')} totali`;
+
+  if (rows.length === 0) {
+    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:40px">Nessuna riga corrisponde ai filtri.</td></tr>`;
+    return;
+  }
+
+  // virtualizzazione semplice: mostro max 1000 righe per perf
+  const MAX = 1000;
+  const slice = rows.slice(0, MAX);
+
+  const html = slice.map((r, i) => {
+    const semClass = r.status === 'OK' ? 'sem-ok' : r.status === 'PARTIAL' ? 'sem-warn' : 'sem-err';
+    const semLbl = r.status === 'OK' ? '✓ Complete' : r.status === 'PARTIAL' ? '◑ Parziale' : '⚠ KO';
+    const userBadge = r.hasUser
+      ? `<span class="sys-badge sb-user-ok">in FOX</span>`
+      : `<span class="sys-badge sb-user-no">assente</span>`;
+    const shopBadge = r.hasShop
+      ? `<span class="sys-badge sb-shop-ok">access OK</span>`
+      : `<span class="sys-badge sb-shop-no">no access</span>`;
+    const shopText = r.shopRaw ?
+      (r.shopDescr ? `${r.shopRaw} · <span style="color:var(--muted)">${escapeHtml(r.shopDescr)}</span>` : r.shopRaw)
+      : '—';
+    return `<tr class="row-clk" onclick="openDetail(${i})">
+      <td><span class="sem ${semClass}"><span class="sem-dot"></span>${semLbl}</span></td>
+      <td>${escapeHtml(r.fullName)}</td>
+      <td style="font-family:var(--fm);color:var(--muted)">${escapeHtml(r.ad || '—')}</td>
+      <td style="color:var(--muted)">${escapeHtml(r.personNumber || '—')}</td>
+      <td>${shopText}</td>
+      <td style="color:var(--muted)">${fmtDate(r.asd)}</td>
+      <td><span style="font-size:10px;color:var(--muted)">${escapeHtml(r.assignStatus || '—')}</span></td>
+      <td>${userBadge}</td>
+      <td>${shopBadge}</td>
+    </tr>`;
+  }).join('');
+
+  let footer = '';
+  if (rows.length > MAX) {
+    footer = `<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:14px;font-size:11px;background:var(--bg3)">
+      Mostrate prime ${MAX} righe di ${rows.length.toLocaleString('it')}. Esporta in CSV per vedere tutto, o restringi i filtri.
+    </td></tr>`;
+  }
+  body.innerHTML = html + footer;
+}
+
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============================================================
+   OVERLAY DETAIL
+============================================================ */
+function openDetail(idx) {
+  const r = state.filtered[idx];
+  if (!r) return;
+  document.getElementById('ov-name').textContent = r.fullName;
+  document.getElementById('ov-sub').textContent = `${r.ad || '—'} · ${r.email || '—'}`;
+
+  document.getElementById('ov-prm').innerHTML = `
+    <div class="kv"><span class="kv-k">Person Number</span><span class="kv-v">${escapeHtml(r.personNumber || '—')}</span></div>
+    <div class="kv"><span class="kv-k">AD Domain</span><span class="kv-v">${escapeHtml(r.ad || '—')}</span></div>
+    <div class="kv"><span class="kv-k">Shop</span><span class="kv-v">${escapeHtml(r.shopRaw || '—')}${r.shopDescr ? ' · ' + escapeHtml(r.shopDescr) : ''}</span></div>
+    <div class="kv"><span class="kv-k">Job</span><span class="kv-v">${escapeHtml(r.job || '—')}</span></div>
+    <div class="kv"><span class="kv-k">Assign Start</span><span class="kv-v">${fmtDate(r.asd)}</span></div>
+    <div class="kv"><span class="kv-k">Assign End</span><span class="kv-v">${fmtDate(r.aed)}</span></div>
+    <div class="kv"><span class="kv-k">Assign Status</span><span class="kv-v">${escapeHtml(r.assignStatus || '—')}</span></div>
+    <div class="kv"><span class="kv-k">Email</span><span class="kv-v">${escapeHtml(r.email || '—')}</span></div>
+  `;
+
+  let foxHtml = '';
+  if (r.hasUser) {
+    const u = r.foxUser;
+    foxHtml += `<div class="pcell">
+      <div class="pc-row"><span class="pc-sys">US_B_USER</span><span class="sys-badge sb-user-ok">presente</span></div>
+      <div class="pc-row"><span class="pc-sys">user_name</span><span class="pc-val" style="font-family:var(--fm)">${escapeHtml(u.user_name)}</span></div>
+      <div class="pc-row"><span class="pc-sys">descr</span><span class="pc-val">${escapeHtml(u.descr || '—')}</span></div>
+      <div class="pc-row"><span class="pc-sys">employee</span><span class="pc-val">${escapeHtml(u.employee_code || '—')}</span></div>
+      <div class="pc-row"><span class="pc-sys">email</span><span class="pc-val" style="font-size:11px">${escapeHtml(u.email || '—')}</span></div>
+      <div class="pc-row"><span class="pc-sys">dt_start</span><span class="pc-val" style="font-size:11px">${escapeHtml(u.dt_start || '—')}</span></div>
+    </div>`;
+  } else {
+    foxHtml += `<div class="pcell">
+      <div class="pc-row"><span class="pc-sys">US_B_USER</span><span class="sys-badge sb-user-no">non trovato</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.7">
+        Nessun record con USER_NAME corrispondente all'AD DOMAIN PRM <strong style="color:var(--text)">${escapeHtml(r.ad || '—')}</strong>.<br>
+        Possibile motivo: utenza non ancora propagata su FOX, oppure DT_END valorizzata (non in questo estratto).
+      </div>
+    </div>`;
+  }
+
+  if (r.hasShop) {
+    foxHtml += `<div class="pcell">
+      <div class="pc-row"><span class="pc-sys">SHOP_ACCESS</span><span class="sys-badge sb-shop-ok">presente</span></div>
+      <div class="pc-row"><span class="pc-sys">access_code</span><span class="pc-val">${escapeHtml(r.shop)}</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">L'utente ha accesso a questo negozio in FOX.</div>
+    </div>`;
+  } else if (r.hasUser) {
+    const others = r.otherShopsInFox.length;
+    foxHtml += `<div class="pcell">
+      <div class="pc-row"><span class="pc-sys">SHOP_ACCESS</span><span class="sys-badge sb-shop-no">manca</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.7">
+        L'utente esiste in FOX ma <strong style="color:var(--text)">non ha accesso al negozio ${escapeHtml(r.shop)}</strong>.<br>
+        ${others > 0 ? `Ha però accesso ad altri ${others} negozi: <span style="color:var(--text);font-family:var(--fm);font-size:10px">${r.otherShopsInFox.slice(0,12).map(escapeHtml).join(', ')}${others > 12 ? '…' : ''}</span>` : `Non ha accesso a nessun negozio in FOX.`}
+      </div>
+    </div>`;
+  } else {
+    foxHtml += `<div class="pcell">
+      <div class="pc-row"><span class="pc-sys">SHOP_ACCESS</span><span class="sys-badge sb-shop-no">manca</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">Coerente con l'assenza in US_B_USER.</div>
+    </div>`;
+  }
+
+  document.getElementById('ov-fox').innerHTML = foxHtml;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeOverlay() {
+  document.getElementById('overlay').classList.remove('open');
+}
+document.getElementById('overlay').addEventListener('click', (e) => {
+  if (e.target.id === 'overlay') closeOverlay();
+});
+
+/* ============================================================
+   EXPORT CSV
+============================================================ */
+function exportCSV() {
+  if (!state.filtered.length) { alert('Nessuna riga da esportare'); return; }
+  const cols = [
+    ['Stato', r => r.status],
+    ['Person Number', r => r.personNumber],
+    ['First Name', r => r.firstName],
+    ['Last Name', r => r.lastName],
+    ['AD Domain', r => r.ad],
+    ['Email', r => r.email],
+    ['Shop Code', r => r.shopRaw],
+    ['Shop Description', r => r.shopDescr],
+    ['Assignment Start Date', r => fmtDate(r.asd)],
+    ['Assignment End Date', r => fmtDate(r.aed)],
+    ['Assignment Status', r => r.assignStatus],
+    ['User esiste in FOX', r => r.hasUser ? 'SI' : 'NO'],
+    ['Shop access in FOX', r => r.hasShop ? 'SI' : 'NO'],
+    ['FOX user_name', r => r.foxUser ? r.foxUser.user_name : ''],
+    ['FOX employee_code', r => r.foxUser ? r.foxUser.employee_code : ''],
+    ['FOX user dt_start', r => r.foxUser ? r.foxUser.dt_start : ''],
+  ];
+  const esc = v => {
+    if (v === null || v === undefined) return '';
+    const s = String(v).replace(/"/g, '""');
+    return /[",\n;]/.test(s) ? `"${s}"` : s;
+  };
+  const header = cols.map(c => c[0]).join(';');
+  const lines = state.filtered.map(r => cols.map(c => esc(c[1](r))).join(';'));
+  const csv = '\ufeff' + header + '\n' + lines.join('\n');  // BOM per Excel
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `check-fox-shops_${ts}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ESC chiude overlay */
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOverlay(); });
+</script>
+</body>
+</html>
